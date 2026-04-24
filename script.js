@@ -10,16 +10,22 @@ let HABITS = [
 const DAYS_TO_SHOW = 7;
 const STORAGE_KEY = "streak_forge_data";
 const HABITS_STORAGE_KEY = "streak_forge_habits";
+const INCOME_STORAGE_KEY = "streak_forge_income";
+const GOALS_STORAGE_KEY = "streak_forge_goals";
 
 // Application State
 let appData = {};
 let dates = []; // Array of YYYY-MM-DD strings for the past 7 days
+let shortGoals = [];
+let longGoals = [];
 
 // Initialize App
 function init() {
     loadData();
+    loadIncome();
     generateDates();
     renderTimetable();
+    renderGoals();
     renderGrid();
     updateDashboard();
     drawGraph();
@@ -40,6 +46,15 @@ function loadData() {
     if (savedHabits) {
         try {
             HABITS = JSON.parse(savedHabits);
+        } catch(e) {}
+    }
+    
+    const savedGoals = localStorage.getItem(GOALS_STORAGE_KEY);
+    if (savedGoals) {
+        try {
+            const p = JSON.parse(savedGoals);
+            if (p.short) shortGoals = p.short;
+            if (p.long) longGoals = p.long;
         } catch(e) {}
     }
 }
@@ -185,6 +200,7 @@ function toggleHabit(dateStr, habit, cellElement) {
 // ------ Stats & Streak ------
 
 function updateDashboard() {
+    document.getElementById("header-active-habits").textContent = HABITS.length;
     const todayStr = formatDate(new Date());
     const percent = calculateDayPercentage(todayStr);
     document.getElementById("today-percent").textContent = `${percent}%`;
@@ -486,6 +502,129 @@ importInput.addEventListener("change", (e) => {
         }
     };
     reader.readAsText(file);
+});
+
+// ------ Income Tracker ------
+function loadIncome() {
+    const saved = localStorage.getItem(INCOME_STORAGE_KEY);
+    const display = document.getElementById("income-amount");
+    if (saved) {
+        display.textContent = `₹${parseInt(saved).toLocaleString('en-IN')}`;
+    } else {
+        display.textContent = "₹0";
+    }
+}
+
+document.getElementById("edit-income-btn").addEventListener("click", () => {
+    document.getElementById("income-edit-area").style.display = "flex";
+    document.getElementById("income-input").value = localStorage.getItem(INCOME_STORAGE_KEY) || "";
+});
+
+document.getElementById("save-income-btn").addEventListener("click", () => {
+    const val = document.getElementById("income-input").value;
+    if (val) {
+        localStorage.setItem(INCOME_STORAGE_KEY, val);
+        loadIncome();
+        document.getElementById("income-edit-area").style.display = "none";
+    }
+});
+
+// ------ SPA Navigation ------
+
+function switchView(viewId) {
+    document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
+    document.getElementById(viewId).style.display = 'block';
+
+    document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
+    const navId = 'nav-' + viewId.replace('view-', '');
+    const navEl = document.getElementById(navId);
+    if(navEl) navEl.classList.add('active');
+}
+
+// ------ Goals Tracker ------
+
+function saveGoals() {
+    localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify({ short: shortGoals, long: longGoals }));
+}
+
+function renderGoals() {
+    const sLists = [document.getElementById("short-term-list"), document.getElementById("short-term-list-page")];
+    sLists.forEach(list => {
+        if(!list) return;
+        list.innerHTML = "";
+        shortGoals.forEach((g, idx) => {
+            const li = document.createElement("li");
+            li.textContent = g;
+            const del = document.createElement("button");
+            del.textContent = "×";
+            del.className = "icon-btn delete-icon";
+            del.onclick = () => { shortGoals.splice(idx, 1); saveGoals(); renderGoals(); };
+            li.appendChild(del);
+            list.appendChild(li);
+        });
+    });
+
+    const lLists = [document.getElementById("long-term-list"), document.getElementById("long-term-list-page")];
+    lLists.forEach(list => {
+        if(!list) return;
+        list.innerHTML = "";
+        longGoals.forEach((g, idx) => {
+            const li = document.createElement("li");
+            li.textContent = g;
+            const del = document.createElement("button");
+            del.textContent = "×";
+            del.className = "icon-btn delete-icon";
+            del.onclick = () => { longGoals.splice(idx, 1); saveGoals(); renderGoals(); };
+            li.appendChild(del);
+            list.appendChild(li);
+        });
+    });
+}
+
+function commitShortGoal(val) {
+    if (val) {
+        shortGoals.push(val);
+        saveGoals();
+        renderGoals();
+    }
+}
+
+function commitLongGoal(val) {
+    if (val) {
+        longGoals.push(val);
+        saveGoals();
+        renderGoals();
+    }
+}
+
+// Attach to dashboard inputs
+document.getElementById("add-short-goal-btn").addEventListener("click", () => {
+    let inp = document.getElementById("short-goal-input"); commitShortGoal(inp.value.trim()); inp.value = "";
+});
+document.getElementById("short-goal-input").addEventListener("keyup", (e) => {
+    if (e.key === "Enter") { commitShortGoal(e.target.value.trim()); e.target.value = ""; }
+});
+
+document.getElementById("add-long-goal-btn").addEventListener("click", () => {
+    let inp = document.getElementById("long-goal-input"); commitLongGoal(inp.value.trim()); inp.value = "";
+});
+document.getElementById("long-goal-input").addEventListener("keyup", (e) => {
+    if (e.key === "Enter") { commitLongGoal(e.target.value.trim()); e.target.value = ""; }
+});
+
+// Attach to specific page inputs
+document.getElementById("add-short-goal-btn-page").addEventListener("click", () => {
+    let inp = document.getElementById("short-goal-input-page"); commitShortGoal(inp.value.trim()); inp.value = "";
+});
+document.getElementById("short-goal-input-page").addEventListener("keyup", (e) => {
+    if (e.key === "Enter") { commitShortGoal(e.target.value.trim()); e.target.value = ""; }
+});
+
+document.getElementById("add-long-goal-btn-page").addEventListener("click", () => {
+    let inp = document.getElementById("long-goal-input-page"); commitLongGoal(inp.value.trim()); inp.value = "";
+});
+document.getElementById("long-goal-input-page").addEventListener("keyup", (e) => {
+    if (e.key === "Enter") { commitLongGoal(e.target.value.trim()); e.target.value = ""; }
 });
 
 // Run app

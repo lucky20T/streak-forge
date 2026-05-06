@@ -3,275 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategy Dashboard | Streak Forge</title>
+    <title>Streak Forge | Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="dashboard-layout">
-        <!-- Sidebar Navigation -->
-        <nav class="side-nav">
-            <div class="brand">
-                <div class="brand-icon">⚡</div>
-                <div class="brand-text">
-                    <strong>Strategy</strong>
-                    <span>DEEP WORK MODE</span>
-                </div>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">⚡ Streak Forge</div>
             </div>
             
-            <ul class="nav-links">
-                <li id="nav-dashboard" class="active" onclick="switchView('view-dashboard')"><span class="icon">⊞</span> Dashboard</li>
-                <li id="nav-short-term" onclick="switchView('view-short-term')"><span class="icon">⏱</span> Short-Term</li>
-                <li id="nav-long-term" onclick="switchView('view-long-term')"><span class="icon">📆</span> Long-Term</li>
-                <li id="nav-archive" onclick="switchView('view-archive')"><span class="icon">🗃</span> Archive</li>
-            </ul>
-
-            <div class="nav-bottom">
-                <button class="primary-nav-btn" id="focus-btn">+ New Goal</button>
-                <div class="nav-links bottom-links">
-                    <li><span class="icon">?</span> Support</li>
-                    <li><span class="icon">👤</span> Account</li>
+            <nav class="nav-menu">
+                <div class="nav-section">
+                    <button class="nav-item active" onclick="switchView('view-activity')">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-label">Activity</span>
+                    </button>
+                    <button class="nav-item" onclick="switchView('view-exercise')">
+                        <span class="nav-icon">🏋️</span>
+                        <span class="nav-label">Exercise</span>
+                    </button>
                 </div>
-            </div>
-        </nav>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Top Nav -->
-            <header class="top-bar">
-                <div class="top-nav-tabs">
-                    <span class="active">Analytics</span>
-                    <span>Teams</span>
+                
+                <div class="nav-section bottom">
+                    <button class="nav-item" onclick="switchView('view-money')">
+                        <span class="nav-icon">💰</span>
+                        <span class="nav-label">Money</span>
+                    </button>
                 </div>
-                <div class="top-actions">
-                    <span class="icon">🔔</span>
-                    <span class="icon">⚙</span>
-                    <div class="profile-pic"></div>
-                </div>
-            </header>
+            </nav>
+        </aside>
 
-            <div id="zero-day-banner" class="warning-banner" style="display: none;">
-                ⚠️ <strong>No Zero Day:</strong> Try to complete at least one task today to keep momentum!
-            </div>
+        <!-- MAIN CONTENT -->
+        <main class="app-main">
+            <!-- VIEW: ACTIVITY -->
+            <article id="view-activity" class="view active">
+                <div class="app-container">
+                    <!-- TOP HEADER -->
+                    <header class="top-header">
+                        <div class="header-left">
+                            <h1>Activity Dashboard</h1>
+                            <span class="date-display" id="current-date">--</span>
+                        </div>
+                        <div class="header-right">
+                            <div class="streak-badge">🔥 Current Streak: <span id="current-streak">0</span> days</div>
+                            <div class="streak-badge outline">🏆 Best Streak: <span id="best-streak">0</span> days</div>
+                        </div>
+                    </header>
 
-            <div class="page-container app-view" id="view-dashboard">
-                <!-- Page Header -->
-                <div class="page-header">
-                    <div class="header-titles">
-                        <span class="badge">STRATEGIC OVERVIEW</span>
-                        <h1>Goal Architecture</h1>
-                        <p>Manage your cognitive load by separating immediate actions from visionary milestones.</p>
-                    </div>
-                    <div class="header-stats">
-                        <div class="stat-block">
-                            <span class="label">ACTIVE HABITS</span>
-                            <span class="value" id="header-active-habits">5</span>
-                        </div>
-                        <div class="stat-block">
-                            <span class="label">COMPLETION RATE</span>
-                            <span class="value" id="today-percent">0%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Goals Cards -->
-                <div class="goals-cards-section">
-                    <div class="premium-card goal-card">
-                        <div class="card-header">
-                            <div class="icon-square blue-bg">⚡</div> <h2>Short-Term Goals</h2>
-                        </div>
-                        <div class="add-bar">
-                            <input type="text" id="short-goal-input" autocomplete="off" placeholder="Enter short-term goal...">
-                            <button id="add-short-goal-btn" class="pill-btn light-blue">Add</button>
-                        </div>
-                        <ul class="premium-list" id="short-term-list"></ul>
-                    </div>
-
-                    <div class="premium-card goal-card">
-                        <div class="card-header">
-                            <div class="icon-square light-bg">✨</div> <h2>Long-Term Goals</h2>
-                        </div>
-                        <div class="add-bar">
-                            <input type="text" id="long-goal-input" autocomplete="off" placeholder="Enter long-term goal...">
-                            <button id="add-long-goal-btn" class="pill-btn grey-btn">Add</button>
-                        </div>
-                        <ul class="premium-list" id="long-term-list"></ul>
-                    </div>
-                </div>
-
-                <!-- Bottom Overview Cards -->
-                <div class="bottom-cards-section">
-                    <!-- Tracker Card -->
-                    <div class="premium-card visual-card">
-                        <div class="visual-content">
-                            <h3>Weekly Strategy Review</h3>
-                            <p>Deep work scheduling and routine tracking.</p>
-                            
-                            <div class="habit-manager-box">
-                                <div class="add-bar no-margin">
-                                    <input type="text" id="new-habit-input" autocomplete="off" placeholder="New habit template...">
-                                    <button id="add-habit-btn" class="pill-btn outline">Add</button>
+                    <div class="dashboard-grid">
+                        <div class="main-column">
+                            <!-- OBJECTIVE LIST PANEL -->
+                            <section class="panel timer-panel">
+                                <h2>Objectives</h2>
+                                <p class="subtitle">Select an objective to enter Focus Mode.</p>
+                                <div class="timer-cards" id="objectives-container">
+                                    <!-- Objective cards injected via JS -->
                                 </div>
-                                <ul class="premium-list sparse" id="timetable-list"></ul>
-                            </div>
-                        </div>
-                    </div>
+                            </section>
 
-                    <!-- Milestone Insights Card -->
-                    <div class="premium-card blue-card milestone-card">
-                        <div class="trophy-circle">🏆</div>
-                        <h2>Milestone Reached</h2>
-                        <h3 id="streak-counter">🔥 Streak: 0 days</h3>
-                        
-                        <div class="milestone-details">
-                            <p>Longest Streak run: <strong id="insight-longest">0</strong></p>
-                            <p>Most Productive: <strong id="insight-best-day">-</strong></p>
-                            <p>Focus Needed: <strong id="insight-most-skipped">-</strong></p>
+                            <!-- STATS SECTION -->
+                            <section class="panel stats-panel">
+                                <h2>Daily Overview</h2>
+                                <div class="stats-grid">
+                                    <div class="stat-card highlight">
+                                        <div class="stat-label">Productive Time Today</div>
+                                        <div class="stat-value" id="today-total-time">0h 0m</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">Most Focused</div>
+                                        <div class="stat-value" id="today-most-focused">-</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">Active Timer</div>
+                                        <div class="stat-value" id="today-active-timer">None</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">Total Completed Hours</div>
+                                        <div class="stat-value" id="total-completed-hours">0h</div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- ANALYTICS SECTION -->
+                            <section class="panel analytics-panel">
+                                <h2>Productivity Analytics 📊</h2>
+                                <div class="analytics-content">
+                                    <div class="chart-container">
+                                        <h3>Weekly Graph (Last 7 Days)</h3>
+                                        <canvas id="weekly-chart" width="600" height="250"></canvas>
+                                    </div>
+                                    
+                                    <div class="analytics-bottom">
+                                        <div class="distribution-container">
+                                            <h3>Task Distribution (This Week)</h3>
+                                            <div id="task-distribution" class="task-distribution">
+                                                <!-- Progress rows injected here -->
+                                            </div>
+                                        </div>
+
+                                        <div class="insights-container">
+                                            <h3>Insights</h3>
+                                            <ul id="productivity-insights" class="insights-list">
+                                                <li>Loading insights...</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="side-column">
+                            <section class="panel side-panel">
+                                <div class="goals-section">
+                                    <h2>🎯 Short-Term Goals</h2>
+                                    <div class="add-goal">
+                                        <input type="text" id="short-goal-input" placeholder="New short-term goal...">
+                                        <button id="add-short-goal" class="btn primary">+</button>
+                                    </div>
+                                    <ul id="short-goal-list" class="goal-list"></ul>
+
+                                    <h2 class="mt-4">🎯 Long-Term Goals</h2>
+                                    <div class="add-goal">
+                                        <input type="text" id="long-goal-input" placeholder="New long-term goal...">
+                                        <button id="add-long-goal" class="btn primary">+</button>
+                                    </div>
+                                    <ul id="long-goal-list" class="goal-list"></ul>
+                                </div>
+
+                                <div class="timetable-section mt-4">
+                                    <h2>📅 Daily Timetable</h2>
+                                    <ul class="timetable-list">
+                                        <li><span class="dot"></span> Unreal Engine</li>
+                                        <li><span class="dot"></span> Japanese Study</li>
+                                        <li><span class="dot"></span> Chess Practice</li>
+                                        <li><span class="dot"></span> Read / Wind Down</li>
+                                        <li><span class="dot"></span> Sleep</li>
+                                    </ul>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
+            </article>
 
-                <!-- Main Tracker Grid -->
-                <div class="premium-card grid-workspace-card">
-                    <h2>Habit Matrix</h2>
-                    <div class="grid-scroll">
-                        <div class="habit-grid" id="habit-grid"></div>
-                    </div>
-                    
-                    <div class="matrix-footer">
-                        <button id="reset-today-btn" class="text-btn">↻ Reset Today</button>
-                        <div class="data-controls">
-                            <button id="export-btn" class="text-btn">📥 Export</button>
-                            <button id="import-btn" class="text-btn">📤 Import</button>
-                            <input type="file" id="import-file" accept=".json" style="display:none;">
+            <!-- VIEW: EXERCISE -->
+            <article id="view-exercise" class="view hidden">
+                <div class="app-container">
+                    <header class="top-header">
+                        <div class="header-left">
+                            <h1>Exercise Tracking</h1>
+                        </div>
+                    </header>
+                    <div class="panel">
+                        <h2>Workout Logs</h2>
+                        <p class="subtitle">Coming soon: Workout timer and exercise logs.</p>
+                        <div style="padding: 3rem; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: 8px;">
+                            Exercise tracking features will be implemented here.
                         </div>
                     </div>
                 </div>
+            </article>
 
-                <!-- Analytics Breakdown -->
-                <div class="premium-card analytics-card">
-                    <div class="income-overlay">
-                        <h4>Financial Goal</h4>
-                        <div class="income-display">
-                            <strong id="income-amount">₹0</strong>
-                            <button id="edit-income-btn" class="icon-btn">✎</button>
+            <!-- VIEW: MONEY -->
+            <article id="view-money" class="view hidden">
+                <div class="app-container">
+                    <header class="top-header">
+                        <div class="header-left">
+                            <h1>Financial Tracking</h1>
                         </div>
-                        <div id="income-edit-area" style="display:none;">
-                            <input type="number" id="income-input" placeholder="₹">
-                            <button id="save-income-btn" class="pill-btn small">Save</button>
-                        </div>
-                    </div>
-
-                    <h2>Performance Analytics</h2>
-                    <canvas id="progressChart" width="800" height="200"></canvas>
-                </div>
-            </div> <!-- End Dashboard View -->
-
-            <!-- Short Term Goals View -->
-            <div class="page-container app-view" id="view-short-term" style="display:none;">
-                <div class="page-header">
-                    <div class="header-titles">
-                        <span class="badge">TACTICAL EXECUTION</span>
-                        <h1>⏱ Short-Term Goals</h1>
-                        <p>Drive your immediate progress and build momentum step-by-step.</p>
-                    </div>
-                </div>
-
-                <div class="goals-cards-section" style="grid-template-columns: 1fr;">
-                    <!-- The Interactive List -->
-                    <div class="premium-card goal-card">
-                        <div class="card-header">
-                            <div class="icon-square blue-bg">⚡</div> <h2>Manage Objectives</h2>
-                        </div>
-                        <div class="add-bar">
-                            <input type="text" id="short-goal-input-page" autocomplete="off" placeholder="Enter short-term goal...">
-                            <button id="add-short-goal-btn-page" class="pill-btn light-blue">Add</button>
-                        </div>
-                        <ul class="premium-list" id="short-term-list-page"></ul>
-                    </div>
-                </div>
-
-                <!-- Deep Dive Information Structure -->
-                <div class="philosophy-grid">
-                    <div class="premium-card logic-card">
-                        <h3>Core Philosophy</h3>
-                        <div class="info-tag"><strong>Timeframe:</strong> days → weeks → 1–3 months</div>
-                        <div class="info-tag"><strong>Purpose:</strong> immediate progress + momentum</div>
-                        <div class="info-tag"><strong>Type:</strong> specific, actionable, measurable</div>
-                        
-                        <div class="callout-block light-blue-tint">
-                            <strong>Connection Node:</strong> Short-term goals are the concrete *steps* required to mathematically reach your ultimate long-term destination.
+                    </header>
+                    <div class="dashboard-grid">
+                        <div class="main-column">
+                            <section class="panel side-panel">
+                                <div class="income-tracker">
+                                    <h2>💰 Monthly Income</h2>
+                                    <div class="income-display">
+                                        <span id="income-amount">₹0</span>
+                                        <button id="edit-income-btn" class="icon-btn">✎</button>
+                                    </div>
+                                    <div id="income-edit-form" class="hidden">
+                                        <input type="number" id="income-input" placeholder="Amount">
+                                        <button id="save-income-btn" class="btn primary">Save</button>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
                     </div>
-                    <div class="premium-card logic-card">
-                        <h3>Examples</h3>
-                        <ul class="example-list">
-                            <li>Finish 20 LeetCode problems</li>
-                            <li>Build 1 small Unreal project</li>
-                            <li>Study 2 chapters before exam</li>
-                            <li>Exercise 20 days in a row</li>
-                        </ul>
-                        <p class="think-tag">👉 Think: "What can I complete soon?"</p>
-                    </div>
                 </div>
-            </div> <!-- End Short Term View -->
-
-            <!-- Long Term Goals View -->
-            <div class="page-container app-view" id="view-long-term" style="display:none;">
-                <div class="page-header">
-                    <div class="header-titles">
-                        <span class="badge">VISION ARCHITECTURE</span>
-                        <h1>📆 Long-Term Goals</h1>
-                        <p>Establish your life outcomes and set your overall directional compass.</p>
-                    </div>
-                </div>
-
-                <div class="goals-cards-section" style="grid-template-columns: 1fr;">
-                    <!-- The Interactive List -->
-                    <div class="premium-card goal-card">
-                        <div class="card-header">
-                            <div class="icon-square light-bg">✨</div> <h2>Visionary Destinations</h2>
-                        </div>
-                        <div class="add-bar">
-                            <input type="text" id="long-goal-input-page" autocomplete="off" placeholder="Enter long-term vision...">
-                            <button id="add-long-goal-btn-page" class="pill-btn grey-btn">Add</button>
-                        </div>
-                        <ul class="premium-list" id="long-term-list-page"></ul>
-                    </div>
-                </div>
-
-                <!-- Deep Dive Information Structure -->
-                <div class="philosophy-grid">
-                    <div class="premium-card logic-card">
-                        <h3>Core Philosophy</h3>
-                        <div class="info-tag"><strong>Timeframe:</strong> 6 months → multiple years</div>
-                        <div class="info-tag"><strong>Purpose:</strong> direction + total life outcome</div>
-                        <div class="info-tag"><strong>Type:</strong> massive, vision-based, broken into small steps</div>
-                        
-                        <div class="callout-block grey-tint">
-                            <strong>Connection Node:</strong> Long-term goals identify the ultimate *destination*. E.g., Long-term → "Become game developer". Short-term → "Finish 3 projects".
-                        </div>
-                    </div>
-                    <div class="premium-card logic-card">
-                        <h3>Examples</h3>
-                        <ul class="example-list">
-                            <li>Become a professional game developer</li>
-                            <li>Build and publish your own game</li>
-                            <li>Start earning from freelancing</li>
-                            <li>Build a strong portfolio globally</li>
-                        </ul>
-                        <p class="think-tag">👉 Think: "Where do I want to be?"</p>
-                    </div>
-                </div>
-            </div> <!-- End Long Term View -->
-
-            <div class="page-container app-view" id="view-archive" style="display:none;">
-                <div class="page-header">
-                    <h1>Archive empty.</h1>
-                </div>
-            </div>
+            </article>
         </main>
     </div>
+
+    <!-- FOCUS OVERLAY / MODAL -->
+    <div id="focus-overlay" class="focus-overlay hidden">
+        <div class="focus-modal">
+            <button id="close-focus-btn" class="close-btn">&times;</button>
+            <h2 id="focus-title">Objective Name</h2>
+            <div id="focus-goal-display" class="focus-goal-display hidden">Goal: <span id="focus-goal-text"></span></div>
+            
+            <div class="timers-container">
+                <div class="main-timer-wrapper">
+                    <span class="timer-label">Productive Time</span>
+                    <div id="focus-main-timer" class="focus-timer">00:00:00</div>
+                </div>
+                
+                <div id="break-timer-wrapper" class="break-timer-wrapper hidden">
+                    <span class="timer-label warning">Break Time</span>
+                    <div id="focus-break-timer" class="focus-timer warning-text">00:00:00</div>
+                </div>
+            </div>
+
+            <div id="focus-controls-initial" class="focus-controls">
+                <button id="btn-focus-start" class="btn primary large">▶️ Start</button>
+                <button id="btn-focus-set-goal" class="btn outline large">🎯 Set Goal</button>
+            </div>
+            
+            <div id="focus-goal-input-area" class="focus-controls hidden">
+                <input type="number" id="focus-goal-input" placeholder="Minutes">
+                <button id="btn-focus-save-goal" class="btn primary">Save</button>
+                <button id="btn-focus-cancel-goal" class="btn outline">Cancel</button>
+            </div>
+
+            <div id="focus-controls-running" class="focus-controls hidden">
+                <button id="btn-focus-break" class="btn warning large">⏸️ Break</button>
+                <button id="btn-focus-stop" class="btn danger large">⏹️ Stop</button>
+            </div>
+
+            <div id="focus-controls-break" class="focus-controls hidden">
+                <button id="btn-focus-resume" class="btn primary large">▶️ Resume</button>
+                <button id="btn-focus-stop-from-break" class="btn danger large">⏹️ Stop</button>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,631 +1,536 @@
-let HABITS = [
-    "Study",
-    "Game Dev",
-    "Chess",
-    "LeetCode",
-    "Exercise"
-];
+// Constants
+const TASKS = ["Unreal", "Japanese", "Chess"];
+const MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK = 4 * 60 * 60; // 4 hours
 
-// Configuration
-const DAYS_TO_SHOW = 7;
-const STORAGE_KEY = "streak_forge_data";
-const HABITS_STORAGE_KEY = "streak_forge_habits";
-const INCOME_STORAGE_KEY = "streak_forge_income";
-const GOALS_STORAGE_KEY = "streak_forge_goals";
-
-// Application State
-let appData = {};
-let dates = []; // Array of YYYY-MM-DD strings for the past 7 days
-let shortGoals = [];
-let longGoals = [];
-
-// Initialize App
-function init() {
-    loadData();
-    loadIncome();
-    generateDates();
-    renderTimetable();
-    renderGoals();
-    renderGrid();
-    updateDashboard();
-    drawGraph();
+// View Navigation
+function switchView(viewId) {
+    // Hide all views
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+    
+    // Show target view
+    document.getElementById(viewId).classList.add('active');
+    
+    // Update active state on nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Find the button that called this (or just match the onclick attribute)
+    const activeBtn = document.querySelector(`button[onclick="switchView('${viewId}')"]`);
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
-// ------ Data Management ------
+// State Management
+let appState = {
+    records: {}, // { "YYYY-MM-DD": { "Unreal": { time: 0, break: 0, goal: 0 } } }
+    goals: { short: [], long: [] },
+    income: 0,
+    streak: { current: 0, best: 0, lastStreakDate: null }
+};
 
+let activeFocus = {
+    task: null,
+    status: 'idle', // 'idle', 'running', 'break'
+    intervalId: null
+};
+
+// Utilities
+function getTodayString() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function formatTime(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function formatHoursMins(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    return `${h}h ${m}m`;
+}
+
+// Data Persistence
 function loadData() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-        try {
-            appData = JSON.parse(saved);
-        } catch (e) {
-            appData = {};
-        }
-    }
-    const savedHabits = localStorage.getItem(HABITS_STORAGE_KEY);
-    if (savedHabits) {
-        try {
-            HABITS = JSON.parse(savedHabits);
-        } catch(e) {}
+    const data = localStorage.getItem('streakForgeDataV2');
+    if (data) {
+        appState = JSON.parse(data);
     }
     
-    const savedGoals = localStorage.getItem(GOALS_STORAGE_KEY);
-    if (savedGoals) {
-        try {
-            const p = JSON.parse(savedGoals);
-            if (p.short) shortGoals = p.short;
-            if (p.long) longGoals = p.long;
-        } catch(e) {}
+    // Ensure today's record exists
+    const today = getTodayString();
+    if (!appState.records[today]) {
+        appState.records[today] = {};
     }
+    
+    TASKS.forEach(task => {
+        if (!appState.records[today][task]) {
+            appState.records[today][task] = { time: 0, break: 0, goal: 0 };
+        }
+    });
 }
 
 function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    updateDashboard();
-    drawGraph();
+    localStorage.setItem('streakForgeDataV2', JSON.stringify(appState));
+    updateObjectivesUI();
 }
 
-// ------ Date Logic ------
-
-function formatDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function generateDates() {
-    dates = [];
-    for (let i = DAYS_TO_SHOW - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        dates.push(formatDate(d));
+// Focus Logic
+function openFocusMode(task) {
+    // If we're already running another task, don't allow opening a different one unless stopped
+    if (activeFocus.status !== 'idle' && activeFocus.task !== task) {
+        alert("Please stop the current task before starting a new one.");
+        return;
     }
-}
-
-function getFriendlyDateLabel(dateStr) {
-    const today = formatDate(new Date());
     
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    const yesterday = formatDate(d);
-
-    if (dateStr === today) return "Today";
-    if (dateStr === yesterday) return "Yesterday";
+    activeFocus.task = task;
+    document.getElementById('focus-title').textContent = task;
     
-    // Create Date object correctly handling timezones
-    const parts = dateStr.split('-');
-    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-    const options = { weekday: 'short' };
-    return dateObj.toLocaleDateString('en-US', options);
-}
-
-// ------ UI Rendering ------
-
-function getHabitStreak(habit) {
-    let count = 0;
-    let d = new Date();
-    let isCheckingToday = true;
-    while(true) {
-        let dateStr = formatDate(d);
-        let done = (appData[dateStr] && appData[dateStr][habit]);
-        if (done) count++;
-        else if (!isCheckingToday) break;
-        isCheckingToday = false;
-        d.setDate(d.getDate() - 1);
-    }
-    return count;
-}
-
-function renderGrid() {
-    const grid = document.getElementById("habit-grid");
-    grid.innerHTML = "";
-
-    const emptyHeader = document.createElement("div");
-    emptyHeader.className = "grid-header habit-label-header";
-    emptyHeader.textContent = "Habits";
-    grid.appendChild(emptyHeader);
-
-    dates.forEach(dateStr => {
-        const dateHeader = document.createElement("div");
-        dateHeader.className = "grid-header";
-        dateHeader.textContent = getFriendlyDateLabel(dateStr);
-        grid.appendChild(dateHeader);
-    });
-
-    HABITS.forEach(habit => {
-        const habitLabel = document.createElement("div");
-        habitLabel.className = "habit-label";
-        const nameText = document.createElement("span");
-        nameText.className = "habit-name-text";
-        nameText.textContent = habit;
-        const streakText = document.createElement("span");
-        streakText.className = "per-habit-streak";
-        streakText.textContent = getHabitStreak(habit) + "🔥";
-        habitLabel.append(nameText, streakText);
-        grid.appendChild(habitLabel);
-
-        dates.forEach(dateStr => {
-            const cell = document.createElement("div");
-            cell.className = "grid-cell toggle-cell";
-            cell.dataset.date = dateStr;
-            cell.dataset.habit = habit;
-            
-            const isCompleted = appData[dateStr] && appData[dateStr][habit];
-            if (isCompleted) {
-                cell.classList.add("completed");
-                cell.textContent = "✅";
-            } else {
-                cell.textContent = "⬜";
-            }
-
-            const todayStr = formatDate(new Date());
-            if (dateStr === todayStr) {
-                cell.addEventListener("click", () => toggleHabit(dateStr, habit, cell));
-            } else {
-                cell.classList.add("disabled-cell");
-                if (!isCompleted) cell.classList.add("missed-cell");
-            }
-            
-            grid.appendChild(cell);
-        });
-    });
-}
-
-function toggleHabit(dateStr, habit, cellElement) {
-    const todayStr = formatDate(new Date());
-    if (dateStr !== todayStr) return;
+    // Setup UI based on status
+    syncFocusUI();
     
-    // Ensure date object exists
-    if (!appData[dateStr]) {
-        appData[dateStr] = {};
-    }
+    document.getElementById('focus-overlay').classList.remove('hidden');
+}
 
-    // Toggle boolean
-    const currentState = appData[dateStr][habit] || false;
-    appData[dateStr][habit] = !currentState;
-
-    // Update UI
-    if (appData[dateStr][habit]) {
-        cellElement.classList.add("completed");
-        cellElement.textContent = "✅";
+function closeFocusMode() {
+    if (activeFocus.status !== 'idle') {
+        // Can't close if running, must stop first, or we just hide the modal but keep it running?
+        // Let's just hide the modal and let it run in background.
     } else {
-        cellElement.classList.remove("completed");
-        cellElement.textContent = "⬜";
+        activeFocus.task = null;
     }
-
-    saveData();
+    document.getElementById('focus-overlay').classList.add('hidden');
+    updateUI();
 }
 
-// ------ Stats & Streak ------
-
-function updateDashboard() {
-    document.getElementById("header-active-habits").textContent = HABITS.length;
-    const todayStr = formatDate(new Date());
-    const percent = calculateDayPercentage(todayStr);
-    document.getElementById("today-percent").textContent = `${percent}%`;
-
-    const banner = document.getElementById("zero-day-banner");
-    if (percent === 0) {
-        banner.style.display = "block";
-    } else {
-        banner.style.display = "none";
-    }
-
-    let streakCount = 0;
-    let d = new Date();
-    let isCheckingToday = true;
-    while (true) {
-        let dateStr = formatDate(d);
-        let dayPercent = calculateDayPercentage(dateStr);
-
-        if (dayPercent === 100) { streakCount++; } 
-        else if (!isCheckingToday) { break; }
+function startFocusTimer() {
+    if (activeFocus.status === 'running') return;
+    
+    activeFocus.status = 'running';
+    syncFocusUI();
+    
+    if (activeFocus.intervalId) clearInterval(activeFocus.intervalId);
+    
+    activeFocus.intervalId = setInterval(() => {
+        const today = getTodayString();
+        appState.records[today][activeFocus.task].time++;
+        document.getElementById('focus-main-timer').textContent = formatTime(appState.records[today][activeFocus.task].time);
         
-        isCheckingToday = false;
-        d.setDate(d.getDate() - 1);
-    }
-    document.getElementById("streak-counter").textContent = `🔥 Streak: ${streakCount} days`;
-
-    // --- Insights Logic ---
-    let skippedCounts = {};
-    HABITS.forEach(h => skippedCounts[h] = 0);
-    let dayScores = {}; let dayCounts = {};
-
-    dates.forEach(dateStr => {
-        let dObj = new Date(dateStr.split('-')[0], dateStr.split('-')[1]-1, dateStr.split('-')[2]);
-        let dayOfWeek = dObj.getDay();
-        if (!dayScores[dayOfWeek]) { dayScores[dayOfWeek] = 0; dayCounts[dayOfWeek] = 0; }
-        dayCounts[dayOfWeek]++;
-        dayScores[dayOfWeek] += calculateDayPercentage(dateStr);
-
-        HABITS.forEach(h => {
-             if (!appData[dateStr] || !appData[dateStr][h]) {
-                 skippedCounts[h]++;
-             }
-        });
-    });
-
-    let bestDayIdx = -1; let bestAvg = -1;
-    for (let i=0; i<7; i++) {
-        if(dayCounts[i] > 0) {
-            let avg = dayScores[i] / dayCounts[i];
-            if (avg > bestAvg) { bestAvg = avg; bestDayIdx = i; }
-        }
-    }
-    const daysArr = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-    document.getElementById("insight-best-day").textContent = bestDayIdx > -1 ? daysArr[bestDayIdx] : "-";
-
-    let mostSkipped = "-"; let maxSkips = -1;
-    for (let h in skippedCounts) {
-        if (skippedCounts[h] > maxSkips && skippedCounts[h] > 0) {
-            maxSkips = skippedCounts[h]; mostSkipped = h;
-        }
-    }
-    document.getElementById("insight-most-skipped").textContent = mostSkipped;
-
-    let maxHist = 0;
-    let allDates = Object.keys(appData).sort();
-    if (allDates.length > 0) {
-        let currentS = 0;
-        let p = allDates[0].split('-');
-        let checkD = new Date(p[0], p[1]-1, p[2]);
-        let todayD = new Date();
-        while(checkD <= todayD) {
-            let dStr = formatDate(checkD);
-            if (calculateDayPercentage(dStr) === 100) {
-                currentS++; if(currentS > maxHist) maxHist = currentS;
-            } else { currentS = 0; }
-            checkD.setDate(checkD.getDate() + 1);
-        }
-    }
-    maxHist = Math.max(maxHist, streakCount);
-    document.getElementById("insight-longest").textContent = `${maxHist}`;
+        if (appState.records[today][activeFocus.task].time % 10 === 0) saveData();
+    }, 1000);
 }
 
-function calculateDayPercentage(dateStr) {
-    if (!appData[dateStr] || HABITS.length === 0) return 0;
+function startBreak() {
+    if (activeFocus.status !== 'running') return;
     
-    let completedCount = 0;
-    HABITS.forEach(habit => {
-        if (appData[dateStr][habit]) {
-            completedCount++;
-        }
-    });
-
-    return Math.round((completedCount / HABITS.length) * 100);
+    activeFocus.status = 'break';
+    syncFocusUI();
+    
+    if (activeFocus.intervalId) clearInterval(activeFocus.intervalId);
+    
+    activeFocus.intervalId = setInterval(() => {
+        const today = getTodayString();
+        appState.records[today][activeFocus.task].break++;
+        document.getElementById('focus-break-timer').textContent = formatTime(appState.records[today][activeFocus.task].break);
+        
+        if (appState.records[today][activeFocus.task].break % 10 === 0) saveData();
+    }, 1000);
 }
 
-// ------ Interactions ------
+function resumeFocus() {
+    if (activeFocus.status !== 'break') return;
+    startFocusTimer();
+}
 
-document.getElementById("reset-today-btn").addEventListener("click", () => {
-    const todayStr = formatDate(new Date());
-    if (appData[todayStr]) {
-        delete appData[todayStr];
+function stopFocus() {
+    if (activeFocus.intervalId) {
+        clearInterval(activeFocus.intervalId);
+        activeFocus.intervalId = null;
+    }
+    activeFocus.status = 'idle';
+    syncFocusUI();
+    checkStreak();
+    saveData();
+    updateUI();
+}
+
+// Modal UI Sync
+function syncFocusUI() {
+    const today = getTodayString();
+    const taskData = appState.records[today][activeFocus.task];
+    
+    // Set Timers
+    document.getElementById('focus-main-timer').textContent = formatTime(taskData.time);
+    document.getElementById('focus-break-timer').textContent = formatTime(taskData.break);
+    
+    // Set Goal
+    const goalDisplay = document.getElementById('focus-goal-display');
+    const goalText = document.getElementById('focus-goal-text');
+    if (taskData.goal > 0) {
+        goalDisplay.classList.remove('hidden');
+        goalText.textContent = `${Math.floor(taskData.goal / 60)} mins`;
+    } else {
+        goalDisplay.classList.add('hidden');
+    }
+
+    // Toggle Controls
+    document.getElementById('focus-controls-initial').classList.add('hidden');
+    document.getElementById('focus-controls-running').classList.add('hidden');
+    document.getElementById('focus-controls-break').classList.add('hidden');
+    document.getElementById('focus-goal-input-area').classList.add('hidden');
+    document.getElementById('break-timer-wrapper').classList.add('hidden');
+    
+    if (activeFocus.status === 'idle') {
+        document.getElementById('focus-controls-initial').classList.remove('hidden');
+    } else if (activeFocus.status === 'running') {
+        document.getElementById('focus-controls-running').classList.remove('hidden');
+    } else if (activeFocus.status === 'break') {
+        document.getElementById('focus-controls-break').classList.remove('hidden');
+        document.getElementById('break-timer-wrapper').classList.remove('hidden');
+    }
+}
+
+// Goal Settings in Modal
+function openGoalInput() {
+    document.getElementById('focus-controls-initial').classList.add('hidden');
+    document.getElementById('focus-goal-input-area').classList.remove('hidden');
+    const today = getTodayString();
+    const taskData = appState.records[today][activeFocus.task];
+    document.getElementById('focus-goal-input').value = taskData.goal > 0 ? Math.floor(taskData.goal / 60) : '';
+}
+
+function saveGoal() {
+    const val = parseInt(document.getElementById('focus-goal-input').value);
+    if (!isNaN(val) && val > 0) {
+        const today = getTodayString();
+        appState.records[today][activeFocus.task].goal = val * 60; // save in seconds
         saveData();
-        renderGrid();
     }
-});
+    syncFocusUI();
+}
 
-// ------ Graph Drawing ------
+function cancelGoal() {
+    syncFocusUI();
+}
 
-function drawGraph() {
-    const canvas = document.getElementById("progressChart");
-    if (!canvas) return;
+// Dashboard UI
+function updateObjectivesUI() {
+    const today = getTodayString();
+    const container = document.getElementById('objectives-container');
     
-    const ctx = canvas.getContext("2d");
+    container.innerHTML = TASKS.map(task => {
+        const data = appState.records[today][task] || { time: 0, break: 0 };
+        return `
+            <div class="task-card" onclick="openFocusMode('${task}')">
+                <div class="task-name">${task}</div>
+                <div class="task-stats">
+                    <div class="time">${formatTime(data.time)}</div>
+                    ${data.break > 0 ? `<div class="break-time">Break: ${formatTime(data.break)}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Event Listeners for Modal
+document.getElementById('close-focus-btn').addEventListener('click', closeFocusMode);
+document.getElementById('btn-focus-start').addEventListener('click', startFocusTimer);
+document.getElementById('btn-focus-break').addEventListener('click', startBreak);
+document.getElementById('btn-focus-resume').addEventListener('click', resumeFocus);
+document.getElementById('btn-focus-stop').addEventListener('click', stopFocus);
+document.getElementById('btn-focus-stop-from-break').addEventListener('click', stopFocus);
+
+document.getElementById('btn-focus-set-goal').addEventListener('click', openGoalInput);
+document.getElementById('btn-focus-save-goal').addEventListener('click', saveGoal);
+document.getElementById('btn-focus-cancel-goal').addEventListener('click', cancelGoal);
+
+// Global Stats & Analytics Updates
+function updateTotalStats() {
+    const today = getTodayString();
+    let todayTotal = 0;
+    let mostFocusedTask = '-';
+    let maxTime = 0;
+
+    if (appState.records[today]) {
+        for (const [task, data] of Object.entries(appState.records[today])) {
+            todayTotal += data.time;
+            if (data.time > maxTime) {
+                maxTime = data.time;
+                mostFocusedTask = task;
+            }
+        }
+    }
+
+    document.getElementById('today-total-time').textContent = formatHoursMins(todayTotal);
+    document.getElementById('today-most-focused').textContent = maxTime > 0 ? mostFocusedTask : '-';
+
+    let allTimeTotal = 0;
+    for (const date in appState.records) {
+        for (const task in appState.records[date]) {
+            allTimeTotal += appState.records[date][task].time;
+        }
+    }
+    document.getElementById('total-completed-hours').textContent = Math.floor(allTimeTotal / 3600) + 'h';
+    document.getElementById('today-active-timer').textContent = activeFocus.status !== 'idle' ? activeFocus.task : 'None';
+}
+
+function checkStreak() {
+    const today = getTodayString();
+    let todayTotal = 0;
+    for (const task in appState.records[today]) {
+        todayTotal += appState.records[today][task].time;
+    }
+
+    if (todayTotal >= MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK) {
+        if (appState.streak.lastStreakDate !== today) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            
+            if (appState.streak.lastStreakDate === yesterdayStr) {
+                appState.streak.current++;
+            } else {
+                appState.streak.current = 1;
+            }
+            appState.streak.lastStreakDate = today;
+            
+            if (appState.streak.current > appState.streak.best) {
+                appState.streak.best = appState.streak.current;
+            }
+        }
+    }
+}
+
+function drawWeeklyChart() {
+    const canvas = document.getElementById('weekly-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
     
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    const padding = 20;
-    const barWidth = (width - padding * 2) / DAYS_TO_SHOW - 10;
-    const maxBarHeight = height - padding * 2;
+    const last7Days = [];
+    const totals = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        last7Days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+        
+        let dayTotal = 0;
+        if (appState.records[dateStr]) {
+            dayTotal = Object.values(appState.records[dateStr]).reduce((sum, task) => sum + task.time, 0);
+        }
+        totals.push(dayTotal / 3600); 
+    }
 
-    // Background line (x-axis)
+    const maxHours = Math.max(...totals, 4); 
+    
+    ctx.strokeStyle = '#333333';
     ctx.beginPath();
-    ctx.moveTo(padding, height - padding + 5);
-    ctx.lineTo(width - padding, height - padding + 5);
-    ctx.strokeStyle = "#333";
-    ctx.lineWidth = 2;
+    ctx.moveTo(40, 10);
+    ctx.lineTo(40, height - 30);
+    ctx.lineTo(width - 10, height - 30);
     ctx.stroke();
 
-    // Draw bars
-    dates.forEach((dateStr, index) => {
-        const percent = calculateDayPercentage(dateStr);
-        const barHeight = (percent / 100) * maxBarHeight;
+    const barWidth = (width - 70) / 7;
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '12px Inter';
+    ctx.textAlign = 'center';
+
+    for (let i = 0; i < 7; i++) {
+        const h = (totals[i] / maxHours) * (height - 50);
+        const x = 50 + i * barWidth + (barWidth * 0.1);
+        const y = height - 30 - h;
         
-        const x = padding + (index * ((width - padding * 2) / DAYS_TO_SHOW));
-        const y = height - padding - barHeight;
-
-        // Bar background (empty part)
-        ctx.fillStyle = "#262626";
-        ctx.fillRect(x, height - padding - maxBarHeight, barWidth, maxBarHeight - barHeight);
-
-        // Bar fill (completed part)
-        ctx.fillStyle = percent === 100 ? "#3fb950" : "#2ea043"; // Greener if 100%
-        ctx.fillRect(x, y, barWidth, barHeight);
-
-        // Simple labels for Days (e.g. "M", "T", "W")
-        const dateObj = new Date(dateStr.split('-')[0], dateStr.split('-')[1] - 1, dateStr.split('-')[2]);
-        const dayLabel = dateObj.toLocaleDateString('en-US', { weekday: 'narrow' });
+        ctx.fillRect(x, y, barWidth * 0.8, h);
         
-        ctx.fillStyle = "#888";
-        ctx.font = "12px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText(dayLabel, x + barWidth / 2, height - 5);
-    });
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(last7Days[i], x + (barWidth * 0.4), height - 10);
+        
+        if (totals[i] > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(totals[i].toFixed(1) + 'h', x + (barWidth * 0.4), y - 5);
+        }
+        ctx.fillStyle = '#22c55e';
+    }
+
+    ctx.fillStyle = '#aaaaaa';
+    ctx.textAlign = 'right';
+    ctx.fillText('0h', 30, height - 25);
+    ctx.fillText((maxHours/2).toFixed(1) + 'h', 30, height - 25 - (height-50)/2);
+    ctx.fillText(maxHours.toFixed(1) + 'h', 30, 20);
 }
 
-// ------ Habit Management ------
-
-function saveHabits() {
-    localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(HABITS));
-}
-
-function renderTimetable() {
-    const list = document.getElementById("timetable-list");
-    list.innerHTML = "";
-    HABITS.forEach((habit, idx) => {
-        const li = document.createElement("li");
-        li.textContent = habit;
-
-        const actions = document.createElement("div");
-        actions.className = "habit-actions";
-
-        const upBtn = document.createElement("button");
-        upBtn.textContent = "↑";
-        upBtn.className = "icon-btn";
-        upBtn.onclick = () => moveHabit(idx, -1);
-
-        const downBtn = document.createElement("button");
-        downBtn.textContent = "↓";
-        downBtn.className = "icon-btn";
-        downBtn.onclick = () => moveHabit(idx, 1);
-
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "✎";
-        editBtn.className = "icon-btn";
-        editBtn.onclick = () => editHabit(habit);
-
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "×";
-        delBtn.className = "icon-btn delete-icon";
-        delBtn.onclick = () => removeHabit(habit);
-
-        actions.append(upBtn, downBtn, editBtn, delBtn);
-        li.appendChild(actions);
-        list.appendChild(li);
-    });
-}
-
-function moveHabit(idx, dir) {
-    if (idx + dir < 0 || idx + dir >= HABITS.length) return;
-    const temp = HABITS[idx];
-    HABITS[idx] = HABITS[idx + dir];
-    HABITS[idx + dir] = temp;
-    saveHabits();
-    renderTimetable();
-    renderGrid();
-}
-
-function editHabit(oldName) {
-    const newName = prompt("Enter new habit name:", oldName);
-    if (!newName || newName === oldName || HABITS.includes(newName)) return;
+function updateDistribution() {
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    currentWeekStart.setDate(today.getDate() - today.getDay()); 
     
-    const idx = HABITS.indexOf(oldName);
-    HABITS[idx] = newName;
-    saveHabits();
+    const weekTasks = {};
+    TASKS.forEach(t => weekTasks[t] = 0);
+    let totalWeekTime = 0;
 
-    // Migrate history
-    for (let date in appData) {
-        if (appData[date] && typeof appData[date][oldName] !== 'undefined') {
-            appData[date][newName] = appData[date][oldName];
-            delete appData[date][oldName];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(currentWeekStart);
+        d.setDate(currentWeekStart.getDate() + i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        
+        if (appState.records[dateStr]) {
+            for (const [task, data] of Object.entries(appState.records[dateStr])) {
+                if (weekTasks[task] !== undefined) {
+                    weekTasks[task] += data.time;
+                    totalWeekTime += data.time;
+                }
+            }
         }
     }
-    saveData();
-    renderTimetable();
-    renderGrid();
-    updateDashboard();
+
+    const container = document.getElementById('task-distribution');
+    let html = '';
+
+    TASKS.forEach(task => {
+        const pct = totalWeekTime > 0 ? (weekTasks[task] / totalWeekTime) * 100 : 0;
+        html += `
+            <div class="dist-row">
+                <div class="dist-header">
+                    <span>${task}</span>
+                    <span>${pct.toFixed(1)}%</span>
+                </div>
+                <div class="dist-bar-bg">
+                    <div class="dist-bar-fill" style="width: ${pct}%"></div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    generateInsights(weekTasks, totalWeekTime);
 }
 
-function addHabit(name) {
-    if (!name || HABITS.includes(name)) return;
-    HABITS.push(name);
-    saveHabits();
-    renderTimetable();
-    renderGrid();
-    updateDashboard();
-    drawGraph();
-}
+function generateInsights(weekTasks, totalWeekTime) {
+    const insightsContainer = document.getElementById('productivity-insights');
+    const insights = [];
 
-function removeHabit(name) {
-    HABITS = HABITS.filter(h => h !== name);
-    saveHabits();
-    renderTimetable();
-    renderGrid();
-    updateDashboard();
-    drawGraph();
-}
+    if (totalWeekTime === 0) {
+        insights.push("No data yet for this week. Enter Focus Mode to build momentum!");
+    } else {
+        let bestTask = '-';
+        let bestTime = 0;
+        for(const task in weekTasks) {
+            if(weekTasks[task] > bestTime) {
+                bestTime = weekTasks[task];
+                bestTask = task;
+            }
+        }
+        insights.push(`"${bestTask}" is your strongest objective this week.`);
+        
+        if (bestTime > 0) {
+            insights.push(`You spent ${Math.floor(bestTime/3600)}h on ${bestTask} this week.`);
+        }
 
-function triggerAddHabit() {
-    const input = document.getElementById("new-habit-input");
-    const val = input.value.trim();
-    if (val) {
-        addHabit(val);
-        input.value = "";
+        const today = getTodayString();
+        let todayTotal = 0;
+        if(appState.records[today]) {
+            for(const task in appState.records[today]) {
+                todayTotal += appState.records[today][task].time;
+            }
+        }
+        if (todayTotal > MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK) {
+            insights.push("Great job hitting your daily 4-hour goal today! 🔥");
+        }
     }
+
+    insightsContainer.innerHTML = insights.map(i => `<li>${i}</li>`).join('');
 }
 
-document.getElementById("add-habit-btn").addEventListener("click", triggerAddHabit);
-document.getElementById("new-habit-input").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") {
-        triggerAddHabit();
-    }
-});
+// Side panels (Goals, Income) remaining mostly the same logic
+function setupGoalsAndIncome() {
+    const renderGoals = (type) => {
+        const list = document.getElementById(`${type}-goal-list`);
+        list.innerHTML = appState.goals[type].map((g, idx) => `
+            <li>
+                <span>${g}</span>
+                <button onclick="deleteGoal('${type}', ${idx})">✕</button>
+            </li>
+        `).join('');
+    };
 
-// ------ Data Sync ------
+    renderGoals('short');
+    renderGoals('long');
 
-document.getElementById("export-btn").addEventListener("click", () => {
-    const dataStr = JSON.stringify({ appData, HABITS });
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `streak_forge_backup_${formatDate(new Date())}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
+    window.deleteGoal = (type, idx) => {
+        appState.goals[type].splice(idx, 1);
+        saveData();
+        renderGoals(type);
+    };
 
-const importInput = document.getElementById("import-file");
-document.getElementById("import-btn").addEventListener("click", () => {
-    importInput.click();
-});
-importInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const parsed = JSON.parse(e.target.result);
-            if (parsed.appData) appData = parsed.appData;
-            if (parsed.HABITS) HABITS = parsed.HABITS;
+    document.getElementById('add-short-goal').onclick = () => {
+        const input = document.getElementById('short-goal-input');
+        if (input.value.trim()) {
+            appState.goals.short.push(input.value.trim());
+            input.value = '';
             saveData();
-            saveHabits();
-            init(); 
-            alert("Data successfully imported!");
-        } catch (err) {
-            alert("Error reading file.");
+            renderGoals('short');
         }
     };
-    reader.readAsText(file);
-});
 
-// ------ Income Tracker ------
-function loadIncome() {
-    const saved = localStorage.getItem(INCOME_STORAGE_KEY);
-    const display = document.getElementById("income-amount");
-    if (saved) {
-        display.textContent = `₹${parseInt(saved).toLocaleString('en-IN')}`;
-    } else {
-        display.textContent = "₹0";
-    }
+    document.getElementById('add-long-goal').onclick = () => {
+        const input = document.getElementById('long-goal-input');
+        if (input.value.trim()) {
+            appState.goals.long.push(input.value.trim());
+            input.value = '';
+            saveData();
+            renderGoals('long');
+        }
+    };
+
+    const incomeDisplay = document.getElementById('income-amount');
+    const incomeInput = document.getElementById('income-input');
+    const editBtn = document.getElementById('edit-income-btn');
+    const saveBtn = document.getElementById('save-income-btn');
+    const form = document.getElementById('income-edit-form');
+    const displayContainer = document.querySelector('.income-display');
+
+    incomeDisplay.textContent = `₹${appState.income}`;
+
+    editBtn.onclick = () => {
+        displayContainer.classList.add('hidden');
+        form.classList.remove('hidden');
+        incomeInput.value = appState.income;
+        incomeInput.focus();
+    };
+
+    saveBtn.onclick = () => {
+        appState.income = parseInt(incomeInput.value) || 0;
+        incomeDisplay.textContent = `₹${appState.income}`;
+        form.classList.add('hidden');
+        displayContainer.classList.remove('hidden');
+        saveData();
+    };
 }
 
-document.getElementById("edit-income-btn").addEventListener("click", () => {
-    document.getElementById("income-edit-area").style.display = "flex";
-    document.getElementById("income-input").value = localStorage.getItem(INCOME_STORAGE_KEY) || "";
-});
-
-document.getElementById("save-income-btn").addEventListener("click", () => {
-    const val = document.getElementById("income-input").value;
-    if (val) {
-        localStorage.setItem(INCOME_STORAGE_KEY, val);
-        loadIncome();
-        document.getElementById("income-edit-area").style.display = "none";
-    }
-});
-
-// ------ SPA Navigation ------
-
-function switchView(viewId) {
-    document.querySelectorAll('.app-view').forEach(v => v.style.display = 'none');
-    document.getElementById(viewId).style.display = 'block';
-
-    document.querySelectorAll('.nav-links li').forEach(li => li.classList.remove('active'));
-    const navId = 'nav-' + viewId.replace('view-', '');
-    const navEl = document.getElementById(navId);
-    if(navEl) navEl.classList.add('active');
+function updateUI() {
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('current-streak').textContent = appState.streak.current;
+    document.getElementById('best-streak').textContent = appState.streak.best;
+    
+    updateObjectivesUI();
+    updateTotalStats();
+    drawWeeklyChart();
+    updateDistribution();
 }
 
-// ------ Goals Tracker ------
-
-function saveGoals() {
-    localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify({ short: shortGoals, long: longGoals }));
+function init() {
+    loadData();
+    setupGoalsAndIncome();
+    updateUI();
 }
 
-function renderGoals() {
-    const sLists = [document.getElementById("short-term-list"), document.getElementById("short-term-list-page")];
-    sLists.forEach(list => {
-        if(!list) return;
-        list.innerHTML = "";
-        shortGoals.forEach((g, idx) => {
-            const li = document.createElement("li");
-            li.textContent = g;
-            const del = document.createElement("button");
-            del.textContent = "×";
-            del.className = "icon-btn delete-icon";
-            del.onclick = () => { shortGoals.splice(idx, 1); saveGoals(); renderGoals(); };
-            li.appendChild(del);
-            list.appendChild(li);
-        });
-    });
-
-    const lLists = [document.getElementById("long-term-list"), document.getElementById("long-term-list-page")];
-    lLists.forEach(list => {
-        if(!list) return;
-        list.innerHTML = "";
-        longGoals.forEach((g, idx) => {
-            const li = document.createElement("li");
-            li.textContent = g;
-            const del = document.createElement("button");
-            del.textContent = "×";
-            del.className = "icon-btn delete-icon";
-            del.onclick = () => { longGoals.splice(idx, 1); saveGoals(); renderGoals(); };
-            li.appendChild(del);
-            list.appendChild(li);
-        });
-    });
-}
-
-function commitShortGoal(val) {
-    if (val) {
-        shortGoals.push(val);
-        saveGoals();
-        renderGoals();
-    }
-}
-
-function commitLongGoal(val) {
-    if (val) {
-        longGoals.push(val);
-        saveGoals();
-        renderGoals();
-    }
-}
-
-// Attach to dashboard inputs
-document.getElementById("add-short-goal-btn").addEventListener("click", () => {
-    let inp = document.getElementById("short-goal-input"); commitShortGoal(inp.value.trim()); inp.value = "";
-});
-document.getElementById("short-goal-input").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") { commitShortGoal(e.target.value.trim()); e.target.value = ""; }
-});
-
-document.getElementById("add-long-goal-btn").addEventListener("click", () => {
-    let inp = document.getElementById("long-goal-input"); commitLongGoal(inp.value.trim()); inp.value = "";
-});
-document.getElementById("long-goal-input").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") { commitLongGoal(e.target.value.trim()); e.target.value = ""; }
-});
-
-// Attach to specific page inputs
-document.getElementById("add-short-goal-btn-page").addEventListener("click", () => {
-    let inp = document.getElementById("short-goal-input-page"); commitShortGoal(inp.value.trim()); inp.value = "";
-});
-document.getElementById("short-goal-input-page").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") { commitShortGoal(e.target.value.trim()); e.target.value = ""; }
-});
-
-document.getElementById("add-long-goal-btn-page").addEventListener("click", () => {
-    let inp = document.getElementById("long-goal-input-page"); commitLongGoal(inp.value.trim()); inp.value = "";
-});
-document.getElementById("long-goal-input-page").addEventListener("keyup", (e) => {
-    if (e.key === "Enter") { commitLongGoal(e.target.value.trim()); e.target.value = ""; }
-});
-
-// Run app
-init();
+document.addEventListener('DOMContentLoaded', init);

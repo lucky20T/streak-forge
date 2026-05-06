@@ -98,25 +98,77 @@
             </article>
 
             <!-- VIEW: EXERCISE -->
-            <article id="view-exercise" class="view hidden">
+            <article id="view-exercise" class="view">
                 <div class="app-container">
                     <header class="top-header">
                         <div class="header-left">
                             <h1>Exercise Tracking</h1>
+                            <span class="date-display" id="exercise-current-date">--</span>
+                        </div>
+                        <div class="header-right">
+                            <button id="open-manage-exercise-btn" class="icon-btn" title="Manage Exercises">⚙️ Manage</button>
                         </div>
                     </header>
-                    <div class="panel">
-                        <h2>Workout Logs</h2>
-                        <p class="subtitle">Coming soon: Workout timer and exercise logs.</p>
-                        <div style="padding: 3rem; text-align: center; color: var(--text-secondary); border: 1px dashed var(--border-color); border-radius: 8px;">
-                            Exercise tracking features will be implemented here.
+
+                    <div class="activity-minimal-layout">
+                        <!-- STATS SECTION -->
+                        <section class="panel minimal-panel">
+                            <h2>Daily Stats</h2>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-label">Total Exercises</div>
+                                    <div class="stat-value" id="ex-today-count">0</div>
+                                </div>
+                                <div class="stat-card highlight">
+                                    <div class="stat-label">Total Sets</div>
+                                    <div class="stat-value" id="ex-today-sets">0</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-label">Total Reps</div>
+                                    <div class="stat-value" id="ex-today-reps">0</div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <div class="analytics-row">
+                            <!-- LOG WORKOUT & TODAY'S LOG -->
+                            <section class="panel minimal-panel flex-1">
+                                <h2>Log Workout</h2>
+                                <div class="log-exercise-form">
+                                    <select id="exercise-select" class="ex-input">
+                                        <!-- Options injected via JS -->
+                                    </select>
+                                    <div class="reps-sets-inputs">
+                                        <input type="number" id="exercise-sets" class="ex-input" placeholder="Sets" min="1">
+                                        <span class="times-symbol">×</span>
+                                        <input type="number" id="exercise-reps" class="ex-input" placeholder="Reps" min="1">
+                                    </div>
+                                    <button id="btn-log-exercise" class="btn primary w-100">Log Entry</button>
+                                </div>
+
+                                <h3 class="mt-4">Today's Log</h3>
+                                <ul id="today-exercise-log" class="exercise-log-list">
+                                    <!-- Log injected via JS -->
+                                </ul>
+                            </section>
+
+                            <!-- PROGRESS CHART -->
+                            <section class="panel minimal-panel flex-2">
+                                <h2>📈 Weekly Progress (Total Reps)</h2>
+                                <div class="chart-container">
+                                    <canvas id="exercise-weekly-chart" width="600" height="250"></canvas>
+                                </div>
+                                <div class="balance-feedback mt-4" id="exercise-feedback">
+                                    Start logging to see progress.
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
             </article>
 
             <!-- VIEW: MONEY -->
-            <article id="view-money" class="view hidden">
+            <article id="view-money" class="view">
                 <div class="app-container">
                     <header class="top-header">
                         <div class="header-left">
@@ -208,6 +260,36 @@
                 
                 <h3 class="mt-4">Archived</h3>
                 <ul id="manage-archived-list" class="manage-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- MANAGE EXERCISES MODAL -->
+    <div id="exercise-manage-overlay" class="focus-overlay hidden">
+        <div class="manage-modal">
+            <button id="close-manage-exercise-btn" class="close-btn">&times;</button>
+            <h2>⚙️ Manage Exercises</h2>
+            
+            <div class="manage-add-section mt-4">
+                <input type="text" id="new-exercise-name" placeholder="Exercise Name (e.g. Muscle-ups)...">
+                <select id="new-exercise-category">
+                    <option value="Push">Push</option>
+                    <option value="Pull">Pull</option>
+                    <option value="Legs">Legs</option>
+                    <option value="Core">Core</option>
+                    <option value="Cardio">Cardio</option>
+                    <option value="Skill">Skill</option>
+                    <option value="Mobility">Mobility</option>
+                </select>
+                <button id="btn-add-exercise" class="btn primary">Add</button>
+            </div>
+
+            <div class="manage-list-container mt-4">
+                <h3>Active</h3>
+                <ul id="manage-ex-active-list" class="manage-list"></ul>
+                
+                <h3 class="mt-4">Archived</h3>
+                <ul id="manage-ex-archived-list" class="manage-list"></ul>
             </div>
         </div>
     </div>

@@ -11,6 +11,38 @@ function switchView(viewId) {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
+const DEFAULT_EXERCISES = [
+    { id: "ex_1", name: "Push-ups", category: "Push", archived: false },
+    { id: "ex_2", name: "Incline Push-ups", category: "Push", archived: false },
+    { id: "ex_3", name: "Decline Push-ups", category: "Push", archived: false },
+    { id: "ex_4", name: "Diamond Push-ups", category: "Push", archived: false },
+    { id: "ex_5", name: "Pike Push-ups", category: "Push", archived: false },
+    { id: "ex_6", name: "Archer Push-ups", category: "Push", archived: false },
+    { id: "ex_7", name: "Pull-ups", category: "Pull", archived: false },
+    { id: "ex_8", name: "Chin-ups", category: "Pull", archived: false },
+    { id: "ex_9", name: "Australian Rows", category: "Pull", archived: false },
+    { id: "ex_10", name: "Dead Hangs", category: "Pull", archived: false },
+    { id: "ex_11", name: "Squats", category: "Legs", archived: false },
+    { id: "ex_12", name: "Jump Squats", category: "Legs", archived: false },
+    { id: "ex_13", name: "Lunges", category: "Legs", archived: false },
+    { id: "ex_14", name: "Bulgarian Split Squats", category: "Legs", archived: false },
+    { id: "ex_15", name: "Calf Raises", category: "Legs", archived: false },
+    { id: "ex_16", name: "Dips", category: "Push", archived: false },
+    { id: "ex_17", name: "Bench Dips", category: "Push", archived: false },
+    { id: "ex_18", name: "Plank", category: "Core", archived: false },
+    { id: "ex_19", name: "Side Plank", category: "Core", archived: false },
+    { id: "ex_20", name: "Hollow Hold", category: "Core", archived: false },
+    { id: "ex_21", name: "Leg Raises", category: "Core", archived: false },
+    { id: "ex_22", name: "Hanging Knee Raises", category: "Core", archived: false },
+    { id: "ex_23", name: "Mountain Climbers", category: "Cardio", archived: false },
+    { id: "ex_24", name: "Burpees", category: "Cardio", archived: false },
+    { id: "ex_25", name: "Jumping Jacks", category: "Cardio", archived: false },
+    { id: "ex_26", name: "Handstand Practice", category: "Skill", archived: false },
+    { id: "ex_27", name: "Wall Handstand Hold", category: "Skill", archived: false },
+    { id: "ex_28", name: "Stretching", category: "Mobility", archived: false },
+    { id: "ex_29", name: "Mobility", category: "Mobility", archived: false }
+];
+
 // State Management
 let appState = {
     activities: [
@@ -18,7 +50,9 @@ let appState = {
         { id: "act_2", name: "Japanese", type: "productive", archived: false },
         { id: "act_3", name: "Chess", type: "productive", archived: false }
     ],
-    records: {}, // { "YYYY-MM-DD": { "act_1": { time: 0, break: 0, goal: 0 } } }
+    exercises: [...DEFAULT_EXERCISES],
+    records: {}, 
+    exerciseRecords: {}, // { "YYYY-MM-DD": [ { id: "log_1", exerciseId: "ex_1", sets: 4, reps: 12 } ] }
     income: 0,
     streak: { current: 0, best: 0, lastStreakDate: null }
 };
@@ -63,6 +97,10 @@ function loadData() {
     const data = localStorage.getItem('streakForgeDataV3');
     if (data) {
         appState = JSON.parse(data);
+        // Ensure exercises have categories (migrate existing V3 users)
+        if (appState.exercises && (!appState.exercises[0] || !appState.exercises[0].category)) {
+            appState.exercises = [...DEFAULT_EXERCISES]; 
+        }
     } else {
         // Attempt to migrate from V2
         const oldData = localStorage.getItem('streakForgeDataV2');
@@ -97,12 +135,25 @@ function loadData() {
             appState.records = newRecords;
             appState.income = parsed.income || 0;
             appState.streak = parsed.streak || { current: 0, best: 0, lastStreakDate: null };
+            
+            // Add default exercises if migrating from V2
+            if (!appState.exercises || (!appState.exercises[0] || !appState.exercises[0].category)) {
+                appState.exercises = [...DEFAULT_EXERCISES];
+                appState.exerciseRecords = {};
+            }
+
             saveData();
         }
     }
 
+    if (!appState.exercises || (!appState.exercises[0] || !appState.exercises[0].category)) {
+        appState.exercises = [...DEFAULT_EXERCISES];
+    }
+    if (!appState.exerciseRecords) appState.exerciseRecords = {};
+
     const today = getTodayString();
     if (!appState.records[today]) appState.records[today] = {};
+    if (!appState.exerciseRecords[today]) appState.exerciseRecords[today] = [];
     
     appState.activities.forEach(act => {
         if (!appState.records[today][act.id]) {
@@ -116,6 +167,7 @@ function saveData() {
     updateObjectivesUI();
     drawWeeklyChart();
     updateBalanceInsights();
+    updateExerciseUI();
 }
 
 // Manage Activities
@@ -529,6 +581,268 @@ function checkGlobalStreak() {
     }
 }
 
+// Exercise Tracking & Managing
+function openManageExerciseModal() {
+    renderManageExerciseList();
+    document.getElementById('exercise-manage-overlay').classList.remove('hidden');
+}
+
+function closeManageExerciseModal() {
+    document.getElementById('exercise-manage-overlay').classList.add('hidden');
+    updateExerciseUI();
+}
+
+function renderManageExerciseList() {
+    const activeList = document.getElementById('manage-ex-active-list');
+    const archivedList = document.getElementById('manage-ex-archived-list');
+    
+    activeList.innerHTML = '';
+    archivedList.innerHTML = '';
+
+    appState.exercises.forEach(ex => {
+        const li = document.createElement('li');
+        li.className = 'manage-item';
+        
+        const catClass = ex.category ? ex.category : 'Push';
+        
+        li.innerHTML = `
+            <div class="manage-item-info">
+                <span class="manage-item-type ${catClass}">${catClass}</span>
+                <span id="ex-name-disp-${ex.id}">${ex.name}</span>
+                <input type="text" id="ex-name-input-${ex.id}" class="edit-input hidden" value="${ex.name}">
+            </div>
+            <div class="manage-item-actions">
+                <button class="icon-btn" id="btn-edit-ex-${ex.id}" title="Edit Name">✏️</button>
+                <button class="icon-btn hidden" id="btn-save-ex-${ex.id}" title="Save">✅</button>
+                <button class="icon-btn" onclick="toggleArchiveExercise('${ex.id}')" title="${ex.archived ? 'Unarchive' : 'Archive'}">
+                    ${ex.archived ? '↩️' : '🗄️'}
+                </button>
+            </div>
+        `;
+
+        const editBtn = li.querySelector(`#btn-edit-ex-${ex.id}`);
+        const saveBtn = li.querySelector(`#btn-save-ex-${ex.id}`);
+        const disp = li.querySelector(`#ex-name-disp-${ex.id}`);
+        const input = li.querySelector(`#ex-name-input-${ex.id}`);
+
+        editBtn.onclick = () => {
+            disp.classList.add('hidden');
+            editBtn.classList.add('hidden');
+            input.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+            input.focus();
+        };
+
+        saveBtn.onclick = () => {
+            const newName = input.value.trim();
+            if (newName) {
+                ex.name = newName;
+                saveData();
+                renderManageExerciseList(); 
+            }
+        };
+
+        if (ex.archived) {
+            archivedList.appendChild(li);
+        } else {
+            activeList.appendChild(li);
+        }
+    });
+}
+
+function addNewExercise() {
+    const nameInput = document.getElementById('new-exercise-name');
+    const catSelect = document.getElementById('new-exercise-category');
+    const name = nameInput.value.trim();
+    const category = catSelect ? catSelect.value : 'Push';
+    
+    if (name) {
+        const newEx = {
+            id: generateId(),
+            name: name,
+            category: category,
+            archived: false
+        };
+        appState.exercises.push(newEx);
+        saveData();
+        nameInput.value = '';
+        renderManageExerciseList();
+    }
+}
+
+window.toggleArchiveExercise = function(id) {
+    const ex = appState.exercises.find(e => e.id === id);
+    if (ex) {
+        ex.archived = !ex.archived;
+        saveData();
+        renderManageExerciseList();
+    }
+}
+
+function logWorkout() {
+    const exId = document.getElementById('exercise-select').value;
+    const sets = parseInt(document.getElementById('exercise-sets').value);
+    const reps = parseInt(document.getElementById('exercise-reps').value);
+
+    if (exId && sets > 0 && reps > 0) {
+        const today = getTodayString();
+        appState.exerciseRecords[today].push({
+            id: generateId(),
+            exerciseId: exId,
+            sets: sets,
+            reps: reps
+        });
+        saveData();
+        
+        // Reset inputs
+        document.getElementById('exercise-sets').value = '';
+        document.getElementById('exercise-reps').value = '';
+    } else {
+        alert("Please select an exercise and enter valid sets and reps.");
+    }
+}
+
+window.deleteWorkoutLog = function(logId) {
+    const today = getTodayString();
+    appState.exerciseRecords[today] = appState.exerciseRecords[today].filter(log => log.id !== logId);
+    saveData();
+}
+
+function updateExerciseUI() {
+    const today = getTodayString();
+    document.getElementById('exercise-current-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Populate Select Dropdown grouped by Category
+    const select = document.getElementById('exercise-select');
+    const activeExercises = appState.exercises.filter(e => !e.archived);
+    
+    // Group by category
+    const grouped = activeExercises.reduce((acc, ex) => {
+        const cat = ex.category || 'Other';
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(ex);
+        return acc;
+    }, {});
+
+    let optionsHTML = '<option value="" disabled selected>Select Exercise...</option>';
+    for (const [category, exercises] of Object.entries(grouped)) {
+        optionsHTML += `<optgroup label="${category}">`;
+        exercises.forEach(ex => {
+            optionsHTML += `<option value="${ex.id}">${ex.name}</option>`;
+        });
+        optionsHTML += `</optgroup>`;
+    }
+    
+    select.innerHTML = optionsHTML;
+
+    // Today's Log
+    const logList = document.getElementById('today-exercise-log');
+    const todayLogs = appState.exerciseRecords[today] || [];
+    
+    if (todayLogs.length === 0) {
+        logList.innerHTML = '<li class="log-item" style="justify-content:center; color:var(--text-secondary)">No workouts logged today.</li>';
+    } else {
+        logList.innerHTML = todayLogs.map(log => {
+            const ex = appState.exercises.find(e => e.id === log.exerciseId);
+            const exName = ex ? ex.name : 'Unknown Exercise';
+            return `
+                <li class="log-item">
+                    <div class="log-info">
+                        <span class="log-name">${exName}</span>
+                        <span class="log-stats">${log.sets} sets × ${log.reps} reps</span>
+                    </div>
+                    <button class="del-log-btn" onclick="deleteWorkoutLog('${log.id}')" title="Delete Entry">✖</button>
+                </li>
+            `;
+        }).join('');
+    }
+
+    // Daily Stats
+    let totalEx = new Set(todayLogs.map(l => l.exerciseId)).size;
+    let totalSets = todayLogs.reduce((acc, log) => acc + log.sets, 0);
+    let totalReps = todayLogs.reduce((acc, log) => acc + (log.sets * log.reps), 0);
+
+    document.getElementById('ex-today-count').textContent = totalEx;
+    document.getElementById('ex-today-sets').textContent = totalSets;
+    document.getElementById('ex-today-reps').textContent = totalReps;
+
+    drawExerciseWeeklyChart();
+}
+
+function drawExerciseWeeklyChart() {
+    const canvas = document.getElementById('exercise-weekly-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+
+    const last7Days = [];
+    const totals = [];
+    let weekReps = 0;
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        last7Days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+        
+        let dayRepsTotal = 0;
+        if (appState.exerciseRecords[dateStr]) {
+            appState.exerciseRecords[dateStr].forEach(log => {
+                dayRepsTotal += (log.sets * log.reps);
+            });
+        }
+        totals.push(dayRepsTotal); 
+        weekReps += dayRepsTotal;
+    }
+
+    const maxReps = Math.max(...totals, 50); 
+    
+    ctx.strokeStyle = '#333333';
+    ctx.beginPath();
+    ctx.moveTo(40, 10);
+    ctx.lineTo(40, height - 30);
+    ctx.lineTo(width - 10, height - 30);
+    ctx.stroke();
+
+    const barWidth = (width - 70) / 7;
+    ctx.fillStyle = '#22c55e';
+    ctx.font = '12px Inter';
+    ctx.textAlign = 'center';
+
+    for (let i = 0; i < 7; i++) {
+        const h = (totals[i] / maxReps) * (height - 50);
+        const x = 50 + i * barWidth + (barWidth * 0.1);
+        const y = height - 30 - h;
+        
+        ctx.fillRect(x, y, barWidth * 0.8, h);
+        
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText(last7Days[i], x + (barWidth * 0.4), height - 10);
+        
+        if (totals[i] > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(totals[i], x + (barWidth * 0.4), y - 5);
+        }
+        ctx.fillStyle = '#22c55e';
+    }
+
+    ctx.fillStyle = '#aaaaaa';
+    ctx.textAlign = 'right';
+    ctx.fillText('0', 30, height - 25);
+    ctx.fillText(Math.floor(maxReps/2), 30, height - 25 - (height-50)/2);
+    ctx.fillText(maxReps, 30, 20);
+
+    const feedback = document.getElementById('exercise-feedback');
+    if (weekReps === 0) {
+        feedback.textContent = "Start logging to see progress.";
+    } else {
+        feedback.textContent = `You've completed ${weekReps} reps this week! Keep it up.`;
+    }
+}
+
 // Income Tracker (Money View)
 function setupIncome() {
     const incomeDisplay = document.getElementById('income-amount');
@@ -572,6 +886,7 @@ function updateUI() {
     updateObjectivesUI();
     drawWeeklyChart();
     updateBalanceInsights();
+    updateExerciseUI();
 }
 
 function init() {
@@ -593,6 +908,12 @@ function init() {
     document.getElementById('btn-focus-set-goal')?.addEventListener('click', openGoalInput);
     document.getElementById('btn-focus-save-goal')?.addEventListener('click', saveGoal);
     document.getElementById('btn-focus-cancel-goal')?.addEventListener('click', cancelGoal);
+
+    // Exercise Listeners
+    document.getElementById('open-manage-exercise-btn')?.addEventListener('click', openManageExerciseModal);
+    document.getElementById('close-manage-exercise-btn')?.addEventListener('click', closeManageExerciseModal);
+    document.getElementById('btn-add-exercise')?.addEventListener('click', addNewExercise);
+    document.getElementById('btn-log-exercise')?.addEventListener('click', logWorkout);
 }
 
 document.addEventListener('DOMContentLoaded', init);

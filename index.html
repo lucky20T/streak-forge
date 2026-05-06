@@ -53,98 +53,46 @@
                         </div>
                     </header>
 
-                    <div class="dashboard-grid">
-                        <div class="main-column">
-                            <!-- OBJECTIVE LIST PANEL -->
-                            <section class="panel timer-panel">
-                                <h2>Objectives</h2>
-                                <p class="subtitle">Select an objective to enter Focus Mode.</p>
-                                <div class="timer-cards" id="objectives-container">
-                                    <!-- Objective cards injected via JS -->
+                    <div class="activity-minimal-layout">
+                        
+                        <!-- 1. ACTIVITY LIST -->
+                        <section class="panel minimal-panel">
+                            <div class="panel-header-row">
+                                <h2>🎯 Activity List</h2>
+                                <button id="open-manage-btn" class="icon-btn" title="Manage Activities">⚙️</button>
+                            </div>
+                            <div class="timer-cards" id="objectives-container">
+                                <!-- Objective cards injected via JS -->
+                            </div>
+                        </section>
+
+                        <!-- 2. PRODUCTIVITY & BALANCE -->
+                        <div class="analytics-row">
+                            <section class="panel minimal-panel flex-2">
+                                <h2>📊 Productivity Graph</h2>
+                                <div class="chart-container">
+                                    <canvas id="weekly-chart" width="600" height="250"></canvas>
                                 </div>
                             </section>
-
-                            <!-- STATS SECTION -->
-                            <section class="panel stats-panel">
-                                <h2>Daily Overview</h2>
-                                <div class="stats-grid">
-                                    <div class="stat-card highlight">
-                                        <div class="stat-label">Productive Time Today</div>
-                                        <div class="stat-value" id="today-total-time">0h 0m</div>
+                            
+                            <section class="panel minimal-panel flex-1">
+                                <h2>⚖️ Balance</h2>
+                                <div class="balance-stats">
+                                    <div class="balance-item">
+                                        <span class="balance-label productive-text">📚 Productive:</span>
+                                        <strong id="balance-productive">0h 0m</strong>
                                     </div>
-                                    <div class="stat-card">
-                                        <div class="stat-label">Most Focused</div>
-                                        <div class="stat-value" id="today-most-focused">-</div>
-                                    </div>
-                                    <div class="stat-card">
-                                        <div class="stat-label">Active Timer</div>
-                                        <div class="stat-value" id="today-active-timer">None</div>
-                                    </div>
-                                    <div class="stat-card">
-                                        <div class="stat-label">Total Completed Hours</div>
-                                        <div class="stat-value" id="total-completed-hours">0h</div>
+                                    <div class="balance-item">
+                                        <span class="balance-label entertainment-text">🎮 Entertainment:</span>
+                                        <strong id="balance-entertainment">0h 0m</strong>
                                     </div>
                                 </div>
-                            </section>
-
-                            <!-- ANALYTICS SECTION -->
-                            <section class="panel analytics-panel">
-                                <h2>Productivity Analytics 📊</h2>
-                                <div class="analytics-content">
-                                    <div class="chart-container">
-                                        <h3>Weekly Graph (Last 7 Days)</h3>
-                                        <canvas id="weekly-chart" width="600" height="250"></canvas>
-                                    </div>
-                                    
-                                    <div class="analytics-bottom">
-                                        <div class="distribution-container">
-                                            <h3>Task Distribution (This Week)</h3>
-                                            <div id="task-distribution" class="task-distribution">
-                                                <!-- Progress rows injected here -->
-                                            </div>
-                                        </div>
-
-                                        <div class="insights-container">
-                                            <h3>Insights</h3>
-                                            <ul id="productivity-insights" class="insights-list">
-                                                <li>Loading insights...</li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                <div class="balance-feedback" id="balance-feedback-text">
+                                    Track some activities to see your balance.
                                 </div>
                             </section>
                         </div>
 
-                        <div class="side-column">
-                            <section class="panel side-panel">
-                                <div class="goals-section">
-                                    <h2>🎯 Short-Term Goals</h2>
-                                    <div class="add-goal">
-                                        <input type="text" id="short-goal-input" placeholder="New short-term goal...">
-                                        <button id="add-short-goal" class="btn primary">+</button>
-                                    </div>
-                                    <ul id="short-goal-list" class="goal-list"></ul>
-
-                                    <h2 class="mt-4">🎯 Long-Term Goals</h2>
-                                    <div class="add-goal">
-                                        <input type="text" id="long-goal-input" placeholder="New long-term goal...">
-                                        <button id="add-long-goal" class="btn primary">+</button>
-                                    </div>
-                                    <ul id="long-goal-list" class="goal-list"></ul>
-                                </div>
-
-                                <div class="timetable-section mt-4">
-                                    <h2>📅 Daily Timetable</h2>
-                                    <ul class="timetable-list">
-                                        <li><span class="dot"></span> Unreal Engine</li>
-                                        <li><span class="dot"></span> Japanese Study</li>
-                                        <li><span class="dot"></span> Chess Practice</li>
-                                        <li><span class="dot"></span> Read / Wind Down</li>
-                                        <li><span class="dot"></span> Sleep</li>
-                                    </ul>
-                                </div>
-                            </section>
-                        </div>
                     </div>
                 </div>
             </article>
@@ -235,6 +183,31 @@
             <div id="focus-controls-break" class="focus-controls hidden">
                 <button id="btn-focus-resume" class="btn primary large">▶️ Resume</button>
                 <button id="btn-focus-stop-from-break" class="btn danger large">⏹️ Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MANAGE ACTIVITIES MODAL -->
+    <div id="manage-overlay" class="focus-overlay hidden">
+        <div class="manage-modal">
+            <button id="close-manage-btn" class="close-btn">&times;</button>
+            <h2>⚙️ Manage Activities</h2>
+            
+            <div class="manage-add-section mt-4">
+                <input type="text" id="new-activity-name" placeholder="Activity Name...">
+                <select id="new-activity-type">
+                    <option value="productive">📚 Productive</option>
+                    <option value="entertainment">🎮 Entertainment</option>
+                </select>
+                <button id="btn-add-activity" class="btn primary">Add</button>
+            </div>
+
+            <div class="manage-list-container mt-4">
+                <h3>Active</h3>
+                <ul id="manage-active-list" class="manage-list"></ul>
+                
+                <h3 class="mt-4">Archived</h3>
+                <ul id="manage-archived-list" class="manage-list"></ul>
             </div>
         </div>
     </div>

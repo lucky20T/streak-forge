@@ -1,37 +1,30 @@
 // Constants
-const TASKS = ["Unreal", "Japanese", "Chess"];
-const MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK = 4 * 60 * 60; // 4 hours
+const MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK = 4 * 60 * 60;
 
 // View Navigation
 function switchView(viewId) {
-    // Hide all views
-    document.querySelectorAll('.view').forEach(view => {
-        view.classList.remove('active');
-    });
-    
-    // Show target view
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
     
-    // Update active state on nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    // Find the button that called this (or just match the onclick attribute)
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const activeBtn = document.querySelector(`button[onclick="switchView('${viewId}')"]`);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
 // State Management
 let appState = {
-    records: {}, // { "YYYY-MM-DD": { "Unreal": { time: 0, break: 0, goal: 0 } } }
-    goals: { short: [], long: [] },
+    activities: [
+        { id: "act_1", name: "Unreal Engine", type: "productive", archived: false },
+        { id: "act_2", name: "Japanese", type: "productive", archived: false },
+        { id: "act_3", name: "Chess", type: "productive", archived: false }
+    ],
+    records: {}, // { "YYYY-MM-DD": { "act_1": { time: 0, break: 0, goal: 0 } } }
     income: 0,
     streak: { current: 0, best: 0, lastStreakDate: null }
 };
 
 let activeFocus = {
-    task: null,
+    activityId: null,
     status: 'idle', // 'idle', 'running', 'break'
     intervalId: null
 };
@@ -40,6 +33,12 @@ let activeFocus = {
 function getTodayString() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function getDateString(daysAgo) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function formatTime(totalSeconds) {
@@ -55,54 +54,189 @@ function formatHoursMins(totalSeconds) {
     return `${h}h ${m}m`;
 }
 
-// Data Persistence
+function generateId() {
+    return 'act_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Data Persistence & Migration
 function loadData() {
-    const data = localStorage.getItem('streakForgeDataV2');
+    const data = localStorage.getItem('streakForgeDataV3');
     if (data) {
         appState = JSON.parse(data);
+    } else {
+        // Attempt to migrate from V2
+        const oldData = localStorage.getItem('streakForgeDataV2');
+        if (oldData) {
+            const parsed = JSON.parse(oldData);
+            let newActivities = [];
+            let newRecords = {};
+
+            // Convert string array to objects
+            if (Array.isArray(parsed.activities) && typeof parsed.activities[0] === 'string') {
+                parsed.activities.forEach(name => {
+                    const id = 'act_' + name.replace(/\s+/g, '').toLowerCase();
+                    newActivities.push({ id, name, type: 'productive', archived: false });
+                });
+            } else if (Array.isArray(parsed.activities)) {
+                newActivities = parsed.activities;
+            }
+
+            // Convert records
+            for (const date in parsed.records) {
+                newRecords[date] = {};
+                for (const oldKey in parsed.records[date]) {
+                    // find id
+                    const act = newActivities.find(a => a.name === oldKey || a.id === oldKey);
+                    if (act) {
+                        newRecords[date][act.id] = parsed.records[date][oldKey];
+                    }
+                }
+            }
+
+            appState.activities = newActivities.length ? newActivities : appState.activities;
+            appState.records = newRecords;
+            appState.income = parsed.income || 0;
+            appState.streak = parsed.streak || { current: 0, best: 0, lastStreakDate: null };
+            saveData();
+        }
     }
-    
-    // Ensure today's record exists
+
     const today = getTodayString();
-    if (!appState.records[today]) {
-        appState.records[today] = {};
-    }
+    if (!appState.records[today]) appState.records[today] = {};
     
-    TASKS.forEach(task => {
-        if (!appState.records[today][task]) {
-            appState.records[today][task] = { time: 0, break: 0, goal: 0 };
+    appState.activities.forEach(act => {
+        if (!appState.records[today][act.id]) {
+            appState.records[today][act.id] = { time: 0, break: 0, goal: 0 };
         }
     });
 }
 
 function saveData() {
-    localStorage.setItem('streakForgeDataV2', JSON.stringify(appState));
+    localStorage.setItem('streakForgeDataV3', JSON.stringify(appState));
     updateObjectivesUI();
+    drawWeeklyChart();
+    updateBalanceInsights();
+}
+
+// Manage Activities
+function openManageModal() {
+    renderManageList();
+    document.getElementById('manage-overlay').classList.remove('hidden');
+}
+
+function closeManageModal() {
+    document.getElementById('manage-overlay').classList.add('hidden');
+    updateUI();
+}
+
+function renderManageList() {
+    const activeList = document.getElementById('manage-active-list');
+    const archivedList = document.getElementById('manage-archived-list');
+    
+    activeList.innerHTML = '';
+    archivedList.innerHTML = '';
+
+    appState.activities.forEach(act => {
+        const li = document.createElement('li');
+        li.className = 'manage-item';
+        
+        li.innerHTML = `
+            <div class="manage-item-info">
+                <span class="manage-item-type ${act.type}">${act.type === 'productive' ? '📚 Prod' : '🎮 Ent'}</span>
+                <span id="act-name-disp-${act.id}">${act.name}</span>
+                <input type="text" id="act-name-input-${act.id}" class="edit-input hidden" value="${act.name}">
+            </div>
+            <div class="manage-item-actions">
+                <button class="icon-btn" id="btn-edit-${act.id}" title="Edit Name">✏️</button>
+                <button class="icon-btn hidden" id="btn-save-${act.id}" title="Save">✅</button>
+                <button class="icon-btn" onclick="toggleArchive('${act.id}')" title="${act.archived ? 'Unarchive' : 'Archive'}">
+                    ${act.archived ? '↩️' : '🗄️'}
+                </button>
+            </div>
+        `;
+
+        // Edit bindings
+        const editBtn = li.querySelector(`#btn-edit-${act.id}`);
+        const saveBtn = li.querySelector(`#btn-save-${act.id}`);
+        const disp = li.querySelector(`#act-name-disp-${act.id}`);
+        const input = li.querySelector(`#act-name-input-${act.id}`);
+
+        editBtn.onclick = () => {
+            disp.classList.add('hidden');
+            editBtn.classList.add('hidden');
+            input.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+            input.focus();
+        };
+
+        saveBtn.onclick = () => {
+            const newName = input.value.trim();
+            if (newName) {
+                act.name = newName;
+                saveData();
+                renderManageList(); // re-render to reset state cleanly
+            }
+        };
+
+        if (act.archived) {
+            archivedList.appendChild(li);
+        } else {
+            activeList.appendChild(li);
+        }
+    });
+}
+
+function addNewActivity() {
+    const nameInput = document.getElementById('new-activity-name');
+    const typeSelect = document.getElementById('new-activity-type');
+    const name = nameInput.value.trim();
+    
+    if (name) {
+        const newAct = {
+            id: generateId(),
+            name: name,
+            type: typeSelect.value,
+            archived: false
+        };
+        appState.activities.push(newAct);
+        
+        const today = getTodayString();
+        appState.records[today][newAct.id] = { time: 0, break: 0, goal: 0 };
+        
+        saveData();
+        nameInput.value = '';
+        renderManageList();
+    }
+}
+
+window.toggleArchive = function(id) {
+    const act = appState.activities.find(a => a.id === id);
+    if (act) {
+        act.archived = !act.archived;
+        saveData();
+        renderManageList();
+    }
 }
 
 // Focus Logic
-function openFocusMode(task) {
-    // If we're already running another task, don't allow opening a different one unless stopped
-    if (activeFocus.status !== 'idle' && activeFocus.task !== task) {
+function openFocusMode(activityId) {
+    if (activeFocus.status !== 'idle' && activeFocus.activityId !== activityId) {
         alert("Please stop the current task before starting a new one.");
         return;
     }
     
-    activeFocus.task = task;
-    document.getElementById('focus-title').textContent = task;
-    
-    // Setup UI based on status
+    const act = appState.activities.find(a => a.id === activityId);
+    if(!act) return;
+
+    activeFocus.activityId = activityId;
+    document.getElementById('focus-title').textContent = act.name;
     syncFocusUI();
-    
     document.getElementById('focus-overlay').classList.remove('hidden');
 }
 
 function closeFocusMode() {
-    if (activeFocus.status !== 'idle') {
-        // Can't close if running, must stop first, or we just hide the modal but keep it running?
-        // Let's just hide the modal and let it run in background.
-    } else {
-        activeFocus.task = null;
+    if (activeFocus.status === 'idle') {
+        activeFocus.activityId = null;
     }
     document.getElementById('focus-overlay').classList.add('hidden');
     updateUI();
@@ -118,10 +252,13 @@ function startFocusTimer() {
     
     activeFocus.intervalId = setInterval(() => {
         const today = getTodayString();
-        appState.records[today][activeFocus.task].time++;
-        document.getElementById('focus-main-timer').textContent = formatTime(appState.records[today][activeFocus.task].time);
+        if (!appState.records[today][activeFocus.activityId]) {
+            appState.records[today][activeFocus.activityId] = { time: 0, break: 0, goal: 0 };
+        }
+        appState.records[today][activeFocus.activityId].time++;
+        document.getElementById('focus-main-timer').textContent = formatTime(appState.records[today][activeFocus.activityId].time);
         
-        if (appState.records[today][activeFocus.task].time % 10 === 0) saveData();
+        if (appState.records[today][activeFocus.activityId].time % 10 === 0) saveData();
     }, 1000);
 }
 
@@ -135,10 +272,10 @@ function startBreak() {
     
     activeFocus.intervalId = setInterval(() => {
         const today = getTodayString();
-        appState.records[today][activeFocus.task].break++;
-        document.getElementById('focus-break-timer').textContent = formatTime(appState.records[today][activeFocus.task].break);
+        appState.records[today][activeFocus.activityId].break++;
+        document.getElementById('focus-break-timer').textContent = formatTime(appState.records[today][activeFocus.activityId].break);
         
-        if (appState.records[today][activeFocus.task].break % 10 === 0) saveData();
+        if (appState.records[today][activeFocus.activityId].break % 10 === 0) saveData();
     }, 1000);
 }
 
@@ -154,7 +291,7 @@ function stopFocus() {
     }
     activeFocus.status = 'idle';
     syncFocusUI();
-    checkStreak();
+    checkGlobalStreak();
     saveData();
     updateUI();
 }
@@ -162,13 +299,12 @@ function stopFocus() {
 // Modal UI Sync
 function syncFocusUI() {
     const today = getTodayString();
-    const taskData = appState.records[today][activeFocus.task];
+    if(!appState.records[today][activeFocus.activityId]) appState.records[today][activeFocus.activityId] = {time:0, break:0, goal:0};
+    const taskData = appState.records[today][activeFocus.activityId];
     
-    // Set Timers
     document.getElementById('focus-main-timer').textContent = formatTime(taskData.time);
     document.getElementById('focus-break-timer').textContent = formatTime(taskData.break);
     
-    // Set Goal
     const goalDisplay = document.getElementById('focus-goal-display');
     const goalText = document.getElementById('focus-goal-text');
     if (taskData.goal > 0) {
@@ -178,7 +314,6 @@ function syncFocusUI() {
         goalDisplay.classList.add('hidden');
     }
 
-    // Toggle Controls
     document.getElementById('focus-controls-initial').classList.add('hidden');
     document.getElementById('focus-controls-running').classList.add('hidden');
     document.getElementById('focus-controls-break').classList.add('hidden');
@@ -195,12 +330,11 @@ function syncFocusUI() {
     }
 }
 
-// Goal Settings in Modal
 function openGoalInput() {
     document.getElementById('focus-controls-initial').classList.add('hidden');
     document.getElementById('focus-goal-input-area').classList.remove('hidden');
     const today = getTodayString();
-    const taskData = appState.records[today][activeFocus.task];
+    const taskData = appState.records[today][activeFocus.activityId];
     document.getElementById('focus-goal-input').value = taskData.goal > 0 ? Math.floor(taskData.goal / 60) : '';
 }
 
@@ -208,14 +342,32 @@ function saveGoal() {
     const val = parseInt(document.getElementById('focus-goal-input').value);
     if (!isNaN(val) && val > 0) {
         const today = getTodayString();
-        appState.records[today][activeFocus.task].goal = val * 60; // save in seconds
+        appState.records[today][activeFocus.activityId].goal = val * 60; 
         saveData();
     }
     syncFocusUI();
 }
 
-function cancelGoal() {
-    syncFocusUI();
+function cancelGoal() { syncFocusUI(); }
+
+// Calculate Activity Streak
+function calculateActivityStreak(activityId) {
+    let streak = 0;
+    const today = getTodayString();
+    
+    if (appState.records[today] && appState.records[today][activityId] && appState.records[today][activityId].time > 0) {
+        streak++;
+    }
+    
+    for (let i = 1; i < 365; i++) {
+        const dateStr = getDateString(i);
+        if (appState.records[dateStr] && appState.records[dateStr][activityId] && appState.records[dateStr][activityId].time > 0) {
+            streak++;
+        } else {
+            break;
+        }
+    }
+    return streak;
 }
 
 // Dashboard UI
@@ -223,85 +375,61 @@ function updateObjectivesUI() {
     const today = getTodayString();
     const container = document.getElementById('objectives-container');
     
-    container.innerHTML = TASKS.map(task => {
-        const data = appState.records[today][task] || { time: 0, break: 0 };
+    // Only show unarchived tasks
+    const activeTasks = appState.activities.filter(a => !a.archived);
+    
+    container.innerHTML = activeTasks.map(act => {
+        const data = (appState.records[today] && appState.records[today][act.id]) || { time: 0, break: 0 };
+        const streak = calculateActivityStreak(act.id);
+        
         return `
-            <div class="task-card" onclick="openFocusMode('${task}')">
-                <div class="task-name">${task}</div>
+            <div class="task-card" data-type="${act.type}" onclick="openFocusMode('${act.id}')">
+                <div class="task-card-header">
+                    <div class="task-name">${act.name}</div>
+                </div>
                 <div class="task-stats">
+                    <div class="streak">🔥 Streak: ${streak}</div>
                     <div class="time">${formatTime(data.time)}</div>
-                    ${data.break > 0 ? `<div class="break-time">Break: ${formatTime(data.break)}</div>` : ''}
                 </div>
             </div>
         `;
     }).join('');
 }
 
-// Event Listeners for Modal
-document.getElementById('close-focus-btn').addEventListener('click', closeFocusMode);
-document.getElementById('btn-focus-start').addEventListener('click', startFocusTimer);
-document.getElementById('btn-focus-break').addEventListener('click', startBreak);
-document.getElementById('btn-focus-resume').addEventListener('click', resumeFocus);
-document.getElementById('btn-focus-stop').addEventListener('click', stopFocus);
-document.getElementById('btn-focus-stop-from-break').addEventListener('click', stopFocus);
-
-document.getElementById('btn-focus-set-goal').addEventListener('click', openGoalInput);
-document.getElementById('btn-focus-save-goal').addEventListener('click', saveGoal);
-document.getElementById('btn-focus-cancel-goal').addEventListener('click', cancelGoal);
-
-// Global Stats & Analytics Updates
-function updateTotalStats() {
+// Analytics
+function updateBalanceInsights() {
     const today = getTodayString();
-    let todayTotal = 0;
-    let mostFocusedTask = '-';
-    let maxTime = 0;
+    let prodTime = 0;
+    let entTime = 0;
 
     if (appState.records[today]) {
-        for (const [task, data] of Object.entries(appState.records[today])) {
-            todayTotal += data.time;
-            if (data.time > maxTime) {
-                maxTime = data.time;
-                mostFocusedTask = task;
+        for (const actId in appState.records[today]) {
+            const act = appState.activities.find(a => a.id === actId);
+            if (act) {
+                if (act.type === 'productive') prodTime += appState.records[today][actId].time;
+                if (act.type === 'entertainment') entTime += appState.records[today][actId].time;
             }
         }
     }
 
-    document.getElementById('today-total-time').textContent = formatHoursMins(todayTotal);
-    document.getElementById('today-most-focused').textContent = maxTime > 0 ? mostFocusedTask : '-';
+    const prodDisplay = document.getElementById('balance-productive');
+    const entDisplay = document.getElementById('balance-entertainment');
+    const feedback = document.getElementById('balance-feedback-text');
 
-    let allTimeTotal = 0;
-    for (const date in appState.records) {
-        for (const task in appState.records[date]) {
-            allTimeTotal += appState.records[date][task].time;
-        }
-    }
-    document.getElementById('total-completed-hours').textContent = Math.floor(allTimeTotal / 3600) + 'h';
-    document.getElementById('today-active-timer').textContent = activeFocus.status !== 'idle' ? activeFocus.task : 'None';
-}
+    if(prodDisplay) prodDisplay.textContent = formatHoursMins(prodTime);
+    if(entDisplay) entDisplay.textContent = formatHoursMins(entTime);
 
-function checkStreak() {
-    const today = getTodayString();
-    let todayTotal = 0;
-    for (const task in appState.records[today]) {
-        todayTotal += appState.records[today][task].time;
-    }
-
-    if (todayTotal >= MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK) {
-        if (appState.streak.lastStreakDate !== today) {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-            
-            if (appState.streak.lastStreakDate === yesterdayStr) {
-                appState.streak.current++;
-            } else {
-                appState.streak.current = 1;
-            }
-            appState.streak.lastStreakDate = today;
-            
-            if (appState.streak.current > appState.streak.best) {
-                appState.streak.best = appState.streak.current;
-            }
+    if (feedback) {
+        if (prodTime === 0 && entTime === 0) {
+            feedback.textContent = "Track some activities to see your balance.";
+        } else if (entTime > prodTime) {
+            feedback.textContent = "Entertainment time exceeded focus time today.";
+        } else if (prodTime > entTime * 2 && entTime > 0) {
+            feedback.textContent = "Great balance between work and relaxation.";
+        } else if (entTime === 0) {
+            feedback.textContent = "100% Productive! Don't forget to take a break.";
+        } else {
+            feedback.textContent = "Solid focus session today.";
         }
     }
 }
@@ -324,11 +452,17 @@ function drawWeeklyChart() {
         const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         last7Days.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
         
-        let dayTotal = 0;
+        let dayProdTotal = 0;
         if (appState.records[dateStr]) {
-            dayTotal = Object.values(appState.records[dateStr]).reduce((sum, task) => sum + task.time, 0);
+            for (const actId in appState.records[dateStr]) {
+                const act = appState.activities.find(a => a.id === actId);
+                // Only graph productive time
+                if (act && act.type === 'productive') {
+                    dayProdTotal += appState.records[dateStr][actId].time;
+                }
+            }
         }
-        totals.push(dayTotal / 3600); 
+        totals.push(dayProdTotal / 3600); 
     }
 
     const maxHours = Math.max(...totals, 4); 
@@ -369,128 +503,34 @@ function drawWeeklyChart() {
     ctx.fillText(maxHours.toFixed(1) + 'h', 30, 20);
 }
 
-function updateDistribution() {
-    const today = new Date();
-    const currentWeekStart = new Date(today);
-    currentWeekStart.setDate(today.getDate() - today.getDay()); 
-    
-    const weekTasks = {};
-    TASKS.forEach(t => weekTasks[t] = 0);
-    let totalWeekTime = 0;
-
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(currentWeekStart);
-        d.setDate(currentWeekStart.getDate() + i);
-        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        
-        if (appState.records[dateStr]) {
-            for (const [task, data] of Object.entries(appState.records[dateStr])) {
-                if (weekTasks[task] !== undefined) {
-                    weekTasks[task] += data.time;
-                    totalWeekTime += data.time;
-                }
-            }
+function checkGlobalStreak() {
+    const today = getTodayString();
+    let todayProdTotal = 0;
+    for (const actId in appState.records[today]) {
+        const act = appState.activities.find(a => a.id === actId);
+        if (act && act.type === 'productive') {
+            todayProdTotal += appState.records[today][actId].time;
         }
     }
 
-    const container = document.getElementById('task-distribution');
-    let html = '';
-
-    TASKS.forEach(task => {
-        const pct = totalWeekTime > 0 ? (weekTasks[task] / totalWeekTime) * 100 : 0;
-        html += `
-            <div class="dist-row">
-                <div class="dist-header">
-                    <span>${task}</span>
-                    <span>${pct.toFixed(1)}%</span>
-                </div>
-                <div class="dist-bar-bg">
-                    <div class="dist-bar-fill" style="width: ${pct}%"></div>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-    generateInsights(weekTasks, totalWeekTime);
-}
-
-function generateInsights(weekTasks, totalWeekTime) {
-    const insightsContainer = document.getElementById('productivity-insights');
-    const insights = [];
-
-    if (totalWeekTime === 0) {
-        insights.push("No data yet for this week. Enter Focus Mode to build momentum!");
-    } else {
-        let bestTask = '-';
-        let bestTime = 0;
-        for(const task in weekTasks) {
-            if(weekTasks[task] > bestTime) {
-                bestTime = weekTasks[task];
-                bestTask = task;
+    if (todayProdTotal >= MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK) {
+        if (appState.streak.lastStreakDate !== today) {
+            const yesterdayStr = getDateString(1);
+            if (appState.streak.lastStreakDate === yesterdayStr) {
+                appState.streak.current++;
+            } else {
+                appState.streak.current = 1;
             }
-        }
-        insights.push(`"${bestTask}" is your strongest objective this week.`);
-        
-        if (bestTime > 0) {
-            insights.push(`You spent ${Math.floor(bestTime/3600)}h on ${bestTask} this week.`);
-        }
-
-        const today = getTodayString();
-        let todayTotal = 0;
-        if(appState.records[today]) {
-            for(const task in appState.records[today]) {
-                todayTotal += appState.records[today][task].time;
+            appState.streak.lastStreakDate = today;
+            if (appState.streak.current > appState.streak.best) {
+                appState.streak.best = appState.streak.current;
             }
-        }
-        if (todayTotal > MINIMUM_PRODUCTIVE_SECONDS_FOR_STREAK) {
-            insights.push("Great job hitting your daily 4-hour goal today! 🔥");
         }
     }
-
-    insightsContainer.innerHTML = insights.map(i => `<li>${i}</li>`).join('');
 }
 
-// Side panels (Goals, Income) remaining mostly the same logic
-function setupGoalsAndIncome() {
-    const renderGoals = (type) => {
-        const list = document.getElementById(`${type}-goal-list`);
-        list.innerHTML = appState.goals[type].map((g, idx) => `
-            <li>
-                <span>${g}</span>
-                <button onclick="deleteGoal('${type}', ${idx})">✕</button>
-            </li>
-        `).join('');
-    };
-
-    renderGoals('short');
-    renderGoals('long');
-
-    window.deleteGoal = (type, idx) => {
-        appState.goals[type].splice(idx, 1);
-        saveData();
-        renderGoals(type);
-    };
-
-    document.getElementById('add-short-goal').onclick = () => {
-        const input = document.getElementById('short-goal-input');
-        if (input.value.trim()) {
-            appState.goals.short.push(input.value.trim());
-            input.value = '';
-            saveData();
-            renderGoals('short');
-        }
-    };
-
-    document.getElementById('add-long-goal').onclick = () => {
-        const input = document.getElementById('long-goal-input');
-        if (input.value.trim()) {
-            appState.goals.long.push(input.value.trim());
-            input.value = '';
-            saveData();
-            renderGoals('long');
-        }
-    };
-
+// Income Tracker (Money View)
+function setupIncome() {
     const incomeDisplay = document.getElementById('income-amount');
     const incomeInput = document.getElementById('income-input');
     const editBtn = document.getElementById('edit-income-btn');
@@ -498,6 +538,7 @@ function setupGoalsAndIncome() {
     const form = document.getElementById('income-edit-form');
     const displayContainer = document.querySelector('.income-display');
 
+    if (!incomeDisplay) return; 
     incomeDisplay.textContent = `₹${appState.income}`;
 
     editBtn.onclick = () => {
@@ -517,20 +558,41 @@ function setupGoalsAndIncome() {
 }
 
 function updateUI() {
-    document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('current-streak').textContent = appState.streak.current;
-    document.getElementById('best-streak').textContent = appState.streak.best;
+    const dateDisplay = document.getElementById('current-date');
+    if (dateDisplay) {
+        dateDisplay.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    
+    const currStreakDisp = document.getElementById('current-streak');
+    if (currStreakDisp) currStreakDisp.textContent = appState.streak.current;
+    
+    const bestStreakDisp = document.getElementById('best-streak');
+    if (bestStreakDisp) bestStreakDisp.textContent = appState.streak.best;
     
     updateObjectivesUI();
-    updateTotalStats();
     drawWeeklyChart();
-    updateDistribution();
+    updateBalanceInsights();
 }
 
 function init() {
     loadData();
-    setupGoalsAndIncome();
+    setupIncome();
     updateUI();
+    
+    // Bind new event listeners
+    document.getElementById('open-manage-btn')?.addEventListener('click', openManageModal);
+    document.getElementById('close-manage-btn')?.addEventListener('click', closeManageModal);
+    document.getElementById('btn-add-activity')?.addEventListener('click', addNewActivity);
+    
+    document.getElementById('close-focus-btn')?.addEventListener('click', closeFocusMode);
+    document.getElementById('btn-focus-start')?.addEventListener('click', startFocusTimer);
+    document.getElementById('btn-focus-break')?.addEventListener('click', startBreak);
+    document.getElementById('btn-focus-resume')?.addEventListener('click', resumeFocus);
+    document.getElementById('btn-focus-stop')?.addEventListener('click', stopFocus);
+    document.getElementById('btn-focus-stop-from-break')?.addEventListener('click', stopFocus);
+    document.getElementById('btn-focus-set-goal')?.addEventListener('click', openGoalInput);
+    document.getElementById('btn-focus-save-goal')?.addEventListener('click', saveGoal);
+    document.getElementById('btn-focus-cancel-goal')?.addEventListener('click', cancelGoal);
 }
 
 document.addEventListener('DOMContentLoaded', init);

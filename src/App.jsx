@@ -4,6 +4,8 @@ import Sidebar from './components/Sidebar';
 import ActivityView from './components/ActivityView';
 import ExerciseView from './components/ExerciseView';
 import MoneyView from './components/MoneyView';
+import ManageView from './components/ManageView';
+import ManageActivitiesView from './components/ManageActivitiesView';
 import FocusModal from './components/FocusModal';
 import ManageActivitiesModal from './components/ManageActivitiesModal';
 import ManageExercisesModal from './components/ManageExercisesModal';
@@ -34,7 +36,7 @@ function App() {
                     setActiveFocusId(id);
                     setActiveModal('focus');
                 }}
-                openManage={() => setActiveModal('manage-activities')}
+                openManage={() => setActiveView('view-manage-activities')}
             />
         )}
         
@@ -42,12 +44,28 @@ function App() {
             <ExerciseView 
                 appState={appState} 
                 updateState={updateState} 
-                openManage={() => setActiveModal('manage-exercises')}
+                openManage={() => setActiveView('view-manage')}
             />
         )}
 
         {activeView === 'view-money' && (
             <MoneyView 
+                appState={appState} 
+                updateState={updateState} 
+                openManage={() => setActiveView('view-manage')}
+            />
+        )}
+
+        {activeView === 'view-manage' && (
+            <ManageView 
+                appState={appState} 
+                openActivityModal={() => setActiveModal('manage-activities')}
+                openExerciseModal={() => setActiveModal('manage-exercises')}
+            />
+        )}
+
+        {activeView === 'view-manage-activities' && (
+            <ManageActivitiesView 
                 appState={appState} 
                 updateState={updateState} 
             />

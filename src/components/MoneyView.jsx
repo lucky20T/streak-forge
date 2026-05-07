@@ -1,6 +1,6 @@
 import TopHeader from './TopHeader';
 
-export default function MoneyView({ appState, updateState }) {
+export default function MoneyView({ appState, updateState, openManage }) {
     // We mock the detailed data to match the visual layout requested by the user,
     // since the current backend state only holds a single `income` value.
     const totalBalance = appState.income || 12450.00;
@@ -9,7 +9,7 @@ export default function MoneyView({ appState, updateState }) {
 
     return (
         <div className="app-container">
-            <TopHeader title="Money Overview" onManage={() => {}} />
+            <TopHeader title="Money Overview" onManage={openManage} />
 
             {/* Top Cards Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>

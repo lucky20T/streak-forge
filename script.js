@@ -53,6 +53,7 @@ let appState = {
     exercises: [...DEFAULT_EXERCISES],
     records: {}, 
     exerciseRecords: {}, // { "YYYY-MM-DD": [ { id: "log_1", exerciseId: "ex_1", sets: 4, reps: 12 } ] }
+    nutritionRecords: {}, // { "YYYY-MM-DD": { meals: [{id, meal, category, note, timestamp}], water: [] } }
     income: 0,
     streak: { current: 0, best: 0, lastStreakDate: null }
 };
@@ -73,6 +74,17 @@ function getDateString(daysAgo) {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getCurrentTime() {
+    const now = new Date();
+    let h = now.getHours();
+    let m = now.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    h = h ? h : 12; 
+    m = m < 10 ? '0'+m : m;
+    return `${h}:${m} ${ampm}`;
 }
 
 function formatTime(totalSeconds) {
@@ -100,6 +112,9 @@ function loadData() {
         // Ensure exercises have categories (migrate existing V3 users)
         if (appState.exercises && (!appState.exercises[0] || !appState.exercises[0].category)) {
             appState.exercises = [...DEFAULT_EXERCISES]; 
+        }
+        if (!appState.nutritionRecords) {
+            appState.nutritionRecords = {};
         }
     } else {
         // Attempt to migrate from V2
@@ -141,6 +156,9 @@ function loadData() {
                 appState.exercises = [...DEFAULT_EXERCISES];
                 appState.exerciseRecords = {};
             }
+            if (!appState.nutritionRecords) {
+                appState.nutritionRecords = {};
+            }
 
             saveData();
         }
@@ -150,10 +168,12 @@ function loadData() {
         appState.exercises = [...DEFAULT_EXERCISES];
     }
     if (!appState.exerciseRecords) appState.exerciseRecords = {};
+    if (!appState.nutritionRecords) appState.nutritionRecords = {};
 
     const today = getTodayString();
     if (!appState.records[today]) appState.records[today] = {};
     if (!appState.exerciseRecords[today]) appState.exerciseRecords[today] = [];
+    if (!appState.nutritionRecords[today]) appState.nutritionRecords[today] = { meals: [], water: [] };
     
     appState.activities.forEach(act => {
         if (!appState.records[today][act.id]) {
@@ -168,6 +188,7 @@ function saveData() {
     drawWeeklyChart();
     updateBalanceInsights();
     updateExerciseUI();
+    updateNutritionUI();
 }
 
 // Manage Activities
@@ -843,6 +864,150 @@ function drawExerciseWeeklyChart() {
     }
 }
 
+// Nutrition & Meal Tracking
+function logMeal() {
+    const mealName = document.getElementById('meal-name').value.trim();
+    const category = document.getElementById('meal-category').value;
+    const note = document.getElementById('meal-note').value.trim();
+
+    if (mealName && category) {
+        const today = getTodayString();
+        
+        // Safety check
+        if (!appState.nutritionRecords[today]) {
+            appState.nutritionRecords[today] = { meals: [], water: [] };
+        }
+
+        appState.nutritionRecords[today].meals.push({
+            id: generateId(),
+            meal: mealName,
+            category: category,
+            note: note,
+            timestamp: getCurrentTime()
+        });
+        
+        saveData();
+        
+        // Reset inputs
+        document.getElementById('meal-name').value = '';
+        document.getElementById('meal-category').value = '';
+        document.getElementById('meal-note').value = '';
+    } else {
+        alert("Please enter a meal name and select a category.");
+    }
+}
+
+window.deleteMealLog = function(logId) {
+    const today = getTodayString();
+    if (appState.nutritionRecords[today]) {
+        appState.nutritionRecords[today].meals = appState.nutritionRecords[today].meals.filter(log => log.id !== logId);
+        saveData();
+    }
+}
+
+function updateNutritionUI() {
+    const today = getTodayString();
+    const records = appState.nutritionRecords[today] || { meals: [], water: [] };
+    const meals = records.meals;
+
+    // Daily Stats Calculation
+    const HEALTHY_CATEGORIES = ["High Protein", "Balanced Meal", "Healthy Homemade", "Healthy Outside Food"];
+    const JUNK_CATEGORIES = ["Junk Food", "Sugary", "Fried Food", "Fast Food", "Cheat Meal"];
+    
+    let healthyCount = 0;
+    let junkCount = 0;
+    let proteinCount = 0;
+
+    meals.forEach(meal => {
+        if (HEALTHY_CATEGORIES.includes(meal.category)) healthyCount++;
+        if (JUNK_CATEGORIES.includes(meal.category)) junkCount++;
+        if (meal.category === "High Protein") proteinCount++;
+    });
+
+    const elTotal = document.getElementById('nut-today-count');
+    const elProtein = document.getElementById('nut-high-protein');
+    const elHealthy = document.getElementById('nut-healthy');
+    const elJunk = document.getElementById('nut-junk');
+
+    if (elTotal) elTotal.textContent = meals.length;
+    if (elProtein) elProtein.textContent = proteinCount;
+    if (elHealthy) elHealthy.textContent = healthyCount;
+    if (elJunk) elJunk.textContent = junkCount;
+
+    // Today's Logs Rendering
+    const logList = document.getElementById('today-meal-log');
+    if (logList) {
+        if (meals.length === 0) {
+            logList.innerHTML = '<li class="log-item" style="justify-content:center; color:var(--text-secondary)">No meals logged today.</li>';
+        } else {
+            logList.innerHTML = meals.map(log => {
+                // Determine badge color
+                let badgeClass = 'other';
+                if (HEALTHY_CATEGORIES.includes(log.category)) badgeClass = 'healthy';
+                if (log.category === 'High Protein') badgeClass = 'high-protein';
+                if (JUNK_CATEGORIES.includes(log.category)) badgeClass = 'junk';
+
+                return `
+                    <li class="log-item" style="align-items: flex-start;">
+                        <div class="log-info" style="gap:0.3rem;">
+                            <div class="log-name">
+                                <span class="meal-badge ${badgeClass}">${log.category}</span>
+                                ${log.meal}
+                            </div>
+                            <div style="display:flex; align-items:center; gap: 0.5rem;">
+                                <span class="meal-timestamp">${log.timestamp}</span>
+                                ${log.note ? `<span class="meal-note">"${log.note}"</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="del-log-btn" onclick="deleteMealLog('${log.id}')" title="Delete Entry">✖</button>
+                    </li>
+                `;
+            }).join('');
+        }
+    }
+
+    // Water Logic
+    const waterLogs = records.water || [];
+    const waterCountEl = document.getElementById('water-today-count');
+    if (waterCountEl) waterCountEl.textContent = waterLogs.length;
+
+    const waterList = document.getElementById('today-water-log');
+    if (waterList) {
+        if (waterLogs.length === 0) {
+            waterList.innerHTML = '<li class="log-item" style="justify-content:center; color:var(--text-secondary); width:100%;">No water logged today.</li>';
+        } else {
+            waterList.innerHTML = waterLogs.map(log => `
+                <li class="log-item" style="padding: 0.5rem 1rem; border-radius: 20px; background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3);">
+                    <span style="color: #0ea5e9; font-weight: 500;">${log.timestamp}</span>
+                    <button class="del-log-btn" onclick="deleteWaterLog('${log.id}')" title="Delete Entry" style="margin-left:0.5rem; color:#0ea5e9;">✖</button>
+                </li>
+            `).join('');
+        }
+    }
+}
+
+function logWater() {
+    const today = getTodayString();
+    if (!appState.nutritionRecords[today]) {
+        appState.nutritionRecords[today] = { meals: [], water: [] };
+    }
+    
+    appState.nutritionRecords[today].water.push({
+        id: generateId(),
+        timestamp: getCurrentTime()
+    });
+    
+    saveData();
+}
+
+window.deleteWaterLog = function(logId) {
+    const today = getTodayString();
+    if (appState.nutritionRecords[today] && appState.nutritionRecords[today].water) {
+        appState.nutritionRecords[today].water = appState.nutritionRecords[today].water.filter(w => w.id !== logId);
+        saveData();
+    }
+}
+
 // Income Tracker (Money View)
 function setupIncome() {
     const incomeDisplay = document.getElementById('income-amount');
@@ -914,6 +1079,10 @@ function init() {
     document.getElementById('close-manage-exercise-btn')?.addEventListener('click', closeManageExerciseModal);
     document.getElementById('btn-add-exercise')?.addEventListener('click', addNewExercise);
     document.getElementById('btn-log-exercise')?.addEventListener('click', logWorkout);
+
+    // Nutrition Listeners
+    document.getElementById('btn-log-meal')?.addEventListener('click', logMeal);
+    document.getElementById('btn-log-water')?.addEventListener('click', logWater);
 }
 
 document.addEventListener('DOMContentLoaded', init);

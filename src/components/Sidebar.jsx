@@ -1,10 +1,11 @@
-import { Activity, Dumbbell, Wallet } from 'lucide-react';
+import { Activity, Dumbbell, Wallet, UserCircle, Settings } from 'lucide-react';
 
 export default function Sidebar({ activeView, setActiveView }) {
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
-                <div className="brand">⚡ Streak Forge</div>
+                <div className="brand">Streak Forge</div>
+                <div className="brand-subtitle">Productivity Ritual</div>
             </div>
             
             <nav className="nav-menu">
@@ -14,24 +15,33 @@ export default function Sidebar({ activeView, setActiveView }) {
                         onClick={() => setActiveView('view-activity')}
                     >
                         <span className="nav-icon"><Activity size={18} /></span>
-                        <span className="nav-label">Activity</span>
+                        <span>Activity</span>
                     </button>
                     <button 
                         className={`nav-item ${activeView === 'view-exercise' ? 'active' : ''}`} 
                         onClick={() => setActiveView('view-exercise')}
                     >
                         <span className="nav-icon"><Dumbbell size={18} /></span>
-                        <span className="nav-label">Health</span>
+                        <span>Exercise</span>
                     </button>
-                </div>
-                
-                <div className="nav-section bottom">
                     <button 
                         className={`nav-item ${activeView === 'view-money' ? 'active' : ''}`} 
                         onClick={() => setActiveView('view-money')}
                     >
                         <span className="nav-icon"><Wallet size={18} /></span>
-                        <span className="nav-label">Money</span>
+                        <span>Money</span>
+                    </button>
+                </div>
+                
+                <div className="nav-section">
+                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '1rem 1.5rem', opacity: 0.5 }}></div>
+                    <button className="nav-item">
+                        <span className="nav-icon"><UserCircle size={18} /></span>
+                        <span>Profile</span>
+                    </button>
+                    <button className="nav-item">
+                        <span className="nav-icon"><Settings size={18} /></span>
+                        <span>Settings</span>
                     </button>
                 </div>
             </nav>

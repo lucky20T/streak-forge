@@ -1,7 +1,9 @@
 import { getTodayString, formatHoursMins } from '../utils';
 import ProductivityChart from './ProductivityChart';
+import TopHeader from './TopHeader';
+import { Code, Languages, Gamepad2, Play } from 'lucide-react';
 
-export default function ActivityView({ appState, openFocus, openManage }) {
+export default function ActivityView({ appState, updateState, openFocus, openManage }) {
     const today = getTodayString();
     
     // Balance Insights Calculations
@@ -19,94 +21,108 @@ export default function ActivityView({ appState, openFocus, openManage }) {
     }
 
     const totalTrackedTime = productiveTime + entertainmentTime;
-    let balanceRatio = 0;
+    let prodPercent = 0;
+    let entPercent = 0;
     if (totalTrackedTime > 0) {
-        balanceRatio = Math.round((productiveTime / totalTrackedTime) * 100);
-    }
-    
-    let feedback = "Track your time to see balance insights.";
-    let feedbackClass = "";
-    if (totalTrackedTime > 0) {
-        if (balanceRatio >= 70) {
-            feedback = `🔥 Excellent discipline! ${balanceRatio}% of your time was productive today.`;
-            feedbackClass = "good";
-        } else if (balanceRatio >= 50) {
-            feedback = `⚖️ Good balance. ${balanceRatio}% productive, but keep an eye on distractions.`;
-        } else {
-            feedback = `⚠️ Distraction warning! Only ${balanceRatio}% productive. Try to focus more!`;
-            feedbackClass = "warning";
-        }
+        prodPercent = Math.round((productiveTime / totalTrackedTime) * 100);
+        entPercent = Math.round((entertainmentTime / totalTrackedTime) * 100);
     }
 
     const activeActivities = appState.activities.filter(a => !a.archived);
 
+    // Helper to get an icon based on name
+    const getIconForActivity = (name) => {
+        const lower = name.toLowerCase();
+        if (lower.includes('unreal') || lower.includes('code')) return <Code size={20} />;
+        if (lower.includes('japanese') || lower.includes('language')) return <Languages size={20} />;
+        if (lower.includes('chess') || lower.includes('game')) return <Gamepad2 size={20} />;
+        return <Play size={20} />;
+    };
+
     return (
         <div className="app-container">
-            <header className="top-header">
-                <div className="header-left">
-                    <h1>Activity Dashboard</h1>
-                    <div className="date-display">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                </div>
-                <div className="header-right">
-                    <button className="btn outline" onClick={openManage}>
-                        ⚙️ Manage Activities
-                    </button>
-                </div>
-            </header>
+            <TopHeader title="Activity" onManage={openManage} />
 
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-label">Productive Focus (Today)</div>
-                    <div className="stat-value">{formatHoursMins(productiveTime)}</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-label" style={{ color: '#f97316' }}>Entertainment (Today)</div>
-                    <div className="stat-value">{formatHoursMins(entertainmentTime)}</div>
-                </div>
-                <div className="stat-card highlight">
-                    <div className="stat-label">Productivity Ratio</div>
-                    <div className="stat-value">{totalTrackedTime > 0 ? balanceRatio + '%' : '-'}</div>
-                </div>
+            <div className="analytics-row">
+                <section className="panel flex-2" style={{ padding: '2rem' }}>
+                    <h2 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '1px' }}>Weekly Focus</h2>
+                    <ProductivityChart appState={appState} />
+                </section>
+
+                <section className="panel flex-1" style={{ padding: '2rem' }}>
+                    <h2 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '1px' }}>Time Allocation</h2>
+                    
+                    <div style={{ marginTop: '1.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 500 }}>
+                            <span>Productive</span>
+                            <span style={{ color: 'var(--accent)' }}>{formatHoursMins(productiveTime)}</span>
+                        </div>
+                        <div className="time-allocation-bar">
+                            <div className="time-allocation-fill" style={{ width: `${prodPercent}%`, background: 'var(--accent)' }}></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 500 }}>
+                            <span>Entertainment</span>
+                            <span style={{ color: 'var(--text-primary)' }}>{formatHoursMins(entertainmentTime)}</span>
+                        </div>
+                        <div className="time-allocation-bar">
+                            <div className="time-allocation-fill" style={{ width: `${entPercent}%`, background: 'var(--text-secondary)' }}></div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Most focused activity</p>
+                        <h3 style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
+                            {activeActivities.length > 0 ? activeActivities[0].name : '-'}
+                        </h3>
+                    </div>
+                </section>
             </div>
 
-            <div className="analytics-row mt-4">
-                <section className="panel minimal-panel flex-1">
-                    <h2>🎯 Focus Sessions</h2>
-                    <div className="activity-list">
-                        {activeActivities.length === 0 ? (
-                            <p style={{ color: 'var(--text-secondary)' }}>No activities. Click "Manage Activities" to add some.</p>
-                        ) : (
-                            activeActivities.map(act => {
-                                const todayData = appState.records[today]?.[act.id] || { time: 0 };
-                                const badgeClass = act.type === 'productive' ? 'productive' : 'entertainment';
-                                return (
-                                    <div key={act.id} className="activity-card" onClick={() => openFocus(act.id)}>
-                                        <div className="activity-info">
-                                            <div className="activity-name">
-                                                <span className={`manage-item-type ${badgeClass}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem' }}>
-                                                    {act.type === 'productive' ? 'PROD' : 'ENT'}
-                                                </span>
-                                                {act.name}
-                                            </div>
-                                            <div className="activity-stats">
-                                                Today: {formatHoursMins(todayData.time)}
-                                            </div>
-                                        </div>
-                                        <button className="btn primary small">Start</button>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </section>
+            <h2 style={{ fontSize: '1.1rem', marginTop: '1rem', marginBottom: '1.5rem' }}>Current Activities</h2>
+            <div className="activity-grid">
+                {activeActivities.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)' }}>No activities. Click "Manage" to add some.</p>
+                ) : (
+                    activeActivities.map(act => {
+                        const todayData = appState.records[today]?.[act.id] || { time: 0 };
+                        const isProd = act.type === 'productive';
+                        const badgeClass = isProd ? 'productive' : 'recreation';
+                        const tagText = isProd ? 'PRODUCTIVE' : 'RECREATION';
+                        
+                        // Mock goal calculation for UI
+                        const mockGoal = 14400; // 4 hours in seconds
+                        const progressPercent = Math.min((todayData.time / mockGoal) * 100, 100);
 
-                <section className="panel minimal-panel flex-2">
-                    <h2>📈 Weekly Productivity</h2>
-                    <ProductivityChart appState={appState} />
-                    <div className={`balance-feedback mt-4 ${feedbackClass}`}>
-                        {feedback}
-                    </div>
-                </section>
+                        return (
+                            <div key={act.id} className="activity-card" onClick={() => openFocus(act.id)}>
+                                <div className="activity-card-header">
+                                    <div className="activity-icon-box">
+                                        {getIconForActivity(act.name)}
+                                    </div>
+                                    <span className={`activity-tag ${badgeClass}`}>{tagText}</span>
+                                </div>
+                                
+                                <h3 className="activity-title">{act.name}</h3>
+                                
+                                <div className="activity-progress-info">
+                                    <span>Today</span>
+                                    <span><strong style={{color: 'var(--text-primary)'}}>{formatHoursMins(todayData.time)}</strong> / 4h</span>
+                                </div>
+                                
+                                <div className="activity-progress-bar">
+                                    <div className="time-allocation-fill" style={{ width: `${progressPercent}%`, background: isProd ? 'var(--accent)' : '#ef4444' }}></div>
+                                </div>
+                                
+                                <div className={`activity-streak ${appState.streak.current === 0 ? 'zero' : ''}`}>
+                                    <span>🔥</span> {appState.streak.current} days streak
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
         </div>
     );

@@ -85,8 +85,8 @@ export default function ManageExercisesModal({ appState, updateState, onClose })
     const archivedExercises = appState.exercises.filter(e => e.archived);
 
     return (
-        <div className="overlay overlay-active">
-            <div className="overlay-content">
+        <div className="overlay overlay-active" onClick={onClose}>
+            <div className="overlay-content" onClick={(e) => e.stopPropagation()}>
                 <button className="icon-btn" style={{ position: 'absolute', top: '1rem', right: '1rem' }} onClick={onClose}>✖</button>
                 <h2>⚙️ Manage Exercises</h2>
                 

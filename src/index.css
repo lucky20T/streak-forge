@@ -323,7 +323,7 @@ p { color: var(--text-secondary); font-size: 0.9rem; }
     letter-spacing: 0.5px;
 }
 .activity-tag.productive { background: var(--accent-light); color: var(--accent); }
-.activity-tag.recreation { background: #f3f4f6; color: var(--text-secondary); }
+.activity-tag.entertainment { background: #f3f4f6; color: var(--text-secondary); }
 
 .activity-title {
     font-size: 1.1rem;

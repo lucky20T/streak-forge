@@ -67,8 +67,8 @@ export default function ManageActivitiesView({ appState, updateState }) {
 
     const ActivityCard = ({ act }) => {
         const isProd = act.type === 'productive';
-        const tagText = isProd ? (act.name.toLowerCase().includes('japan') ? 'Learning' : 'Focus') : 'Recreation';
-        const badgeClass = isProd ? 'productive' : 'recreation';
+        const tagText = isProd ? (act.name.toLowerCase().includes('japan') ? 'Learning' : 'Focus') : 'Entertainment';
+        const badgeClass = isProd ? 'productive' : 'entertainment';
 
         return (
             <div className="activity-card" style={{ padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: '1px solid var(--border-color)', borderRadius: '12px', background: '#fff' }}>
@@ -148,7 +148,7 @@ export default function ManageActivitiesView({ appState, updateState }) {
                         style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-color)' }}
                     >
                         <option value="productive">Productive</option>
-                        <option value="entertainment">Recreation</option>
+                        <option value="entertainment">Entertainment</option>
                     </select>
                     <button className="btn primary" onClick={handleAdd}>Add</button>
                     <button className="btn outline" onClick={() => setIsAdding(false)}>Cancel</button>

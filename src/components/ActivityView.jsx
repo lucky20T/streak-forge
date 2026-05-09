@@ -150,8 +150,8 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                     activeActivities.map(act => {
                         const todayData = appState.records[today]?.[act.id] || { time: 0 };
                         const isProd = act.type === 'productive';
-                        const badgeClass = isProd ? 'productive' : 'recreation';
-                        const tagText = isProd ? 'PRODUCTIVE' : 'RECREATION';
+                        const badgeClass = isProd ? 'productive' : 'entertainment';
+                        const tagText = isProd ? 'PRODUCTIVE' : 'ENTERTAINMENT';
                         
                         // Mock goal calculation for UI
                         const mockGoal = 14400; // 4 hours in seconds

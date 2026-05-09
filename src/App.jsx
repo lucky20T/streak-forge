@@ -10,21 +10,24 @@ import ManageExercisesView from './components/ManageExercisesView';
 import FloatingTimer from './components/FloatingTimer';
 import ManageActivitiesModal from './components/ManageActivitiesModal';
 import ManageExercisesModal from './components/ManageExercisesModal';
+import LogTransactionModal from './components/LogTransactionModal';
+import EditBudgetsModal from './components/EditBudgetsModal';
+import EditIncomeSourcesModal from './components/EditIncomeSourcesModal';
 
 function App() {
   const { appState, updateState } = useAppState();
   const [activeView, setActiveView] = useState('view-activity');
-  const [activeModal, setActiveModal] = useState(null); // 'manage-activities', 'manage-exercises'
-  const [activeFocusId, setActiveFocusId] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // 'manage-activities', 'manage-exercises', 'log-transaction', 'edit-budgets', 'edit-income'
   
-  // Timer state for Focus Mode
-  const [focusState, setFocusState] = useState({
-      status: 'idle', // 'idle', 'running', 'break-selection', 'break-running', 'break-finished'
-      time: 0,
-      break: 0,
-      breakRemaining: 0,
-      sessionBreaks: [],
-      currentBreakElapsed: 0
+  const [activeFocusId, setActiveFocusId] = useState(() => {
+      const saved = localStorage.getItem('streakForge_activeSession');
+      if (saved) {
+          try {
+              const parsed = JSON.parse(saved);
+              return parsed.activityId || null;
+          } catch(e) {}
+      }
+      return null;
   });
 
   return (
@@ -55,7 +58,9 @@ function App() {
             <MoneyView 
                 appState={appState} 
                 updateState={updateState} 
-                openManage={() => setActiveView('view-manage')}
+                openTransactionModal={() => setActiveModal('log-transaction')}
+                openBudgetModal={() => setActiveModal('edit-budgets')}
+                openIncomeModal={() => setActiveModal('edit-income')}
             />
         )}
 
@@ -89,12 +94,10 @@ function App() {
               updateState={updateState}
               activityId={activeFocusId}
               onClose={() => setActiveFocusId(null)}
-              focusState={focusState}
-              setFocusState={setFocusState}
           />
       )}
 
-      {/* Legacy Modals */}
+      {/* Modals */}
       {activeModal === 'manage-activities' && (
           <ManageActivitiesModal 
               appState={appState}
@@ -105,6 +108,30 @@ function App() {
 
       {activeModal === 'manage-exercises' && (
           <ManageExercisesModal 
+              appState={appState}
+              updateState={updateState}
+              onClose={() => setActiveModal(null)}
+          />
+      )}
+
+      {activeModal === 'log-transaction' && (
+          <LogTransactionModal 
+              appState={appState}
+              updateState={updateState}
+              onClose={() => setActiveModal(null)}
+          />
+      )}
+
+      {activeModal === 'edit-budgets' && (
+          <EditBudgetsModal 
+              appState={appState}
+              updateState={updateState}
+              onClose={() => setActiveModal(null)}
+          />
+      )}
+      
+      {activeModal === 'edit-income' && (
+          <EditIncomeSourcesModal 
               appState={appState}
               updateState={updateState}
               onClose={() => setActiveModal(null)}

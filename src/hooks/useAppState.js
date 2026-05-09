@@ -68,7 +68,23 @@ export function useAppState() {
             exerciseRecords: {},
             nutritionRecords: {},
             income: 0,
-            streak: { current: 0, best: 0, lastStreakDate: null }
+            streak: { current: 0, best: 0, lastStreakDate: null },
+            money: {
+                balance: 0,
+                transactions: [],
+                budgets: [
+                    { category: 'Food & Dining', total: 600, spent: 0, color: 'var(--accent)' },
+                    { category: 'Rent & Utilities', total: 2300, spent: 0, color: 'var(--danger)' },
+                    { category: 'Transportation', total: 300, spent: 0, color: 'var(--accent)' },
+                    { category: 'Entertainment', total: 200, spent: 0, color: 'var(--accent)' }
+                ],
+                incomeSources: [
+                    { category: 'Salary', expected: 6000, collected: 0, color: 'var(--success)' },
+                    { category: 'Freelance', expected: 1200, collected: 0, color: 'var(--success)' },
+                    { category: 'Investments', expected: 600, collected: 0, color: 'var(--success)' },
+                    { category: 'Side Project', expected: 400, collected: 0, color: 'var(--success)' }
+                ]
+            }
         };
 
         if (stored) {

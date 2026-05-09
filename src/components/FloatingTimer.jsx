@@ -2,109 +2,197 @@ import { useEffect, useState } from 'react';
 import { getTodayString, formatTime } from '../utils';
 import { Play, Pause, Square, Maximize2, Minimize2, Coffee } from 'lucide-react';
 
-export default function FloatingTimer({ appState, updateState, activityId, onClose, focusState, setFocusState }) {
-    const today = getTodayString();
+export default function FloatingTimer({ appState, updateState, activityId, onClose }) {
     const activity = appState.activities.find(a => a.id === activityId);
-    
     const [isExpanded, setIsExpanded] = useState(true);
     const [customBreakMins, setCustomBreakMins] = useState(15);
     
-    // Timer Effect
-    useEffect(() => {
-        let interval = null;
-        if (focusState.status === 'running') {
-            interval = setInterval(() => {
-                setFocusState(prev => ({ ...prev, time: prev.time + 1 }));
-            }, 1000);
-        } else if (focusState.status === 'break-running') {
-            interval = setInterval(() => {
-                setFocusState(prev => {
-                    const newRem = (prev.breakRemaining || 0) - 1;
-                    const elapsed = (prev.currentBreakElapsed || 0) + 1;
-                    if (newRem <= 0) {
-                        return { 
-                            ...prev, 
-                            status: 'break-finished', 
-                            breakRemaining: 0, 
-                            break: prev.break + 1,
-                            currentBreakElapsed: elapsed
-                        };
-                    }
-                    return { 
-                        ...prev, 
-                        breakRemaining: newRem, 
-                        break: prev.break + 1, 
-                        currentBreakElapsed: elapsed 
-                    };
-                });
-            }, 1000);
-        } else if (focusState.status === 'break') {
-            interval = setInterval(() => {
-                setFocusState(prev => ({ ...prev, break: prev.break + 1 }));
-            }, 1000);
+    // Internal session state managed dynamically
+    const [session, setSession] = useState(() => {
+        const saved = localStorage.getItem('streakForge_activeSession');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed.activityId === activityId) {
+                    return parsed;
+                }
+            } catch(e) {}
         }
+        return {
+            activityId,
+            status: 'idle', // 'idle', 'running', 'break-selection', 'break-running', 'break-finished'
+            lastRunStartTime: null,
+            accumulatedTime: 0,
+            
+            lastBreakStartTime: null,
+            currentBreakTarget: 0,
+            accumulatedBreakTime: 0,
+            
+            sessionBreaks: [],
+            startDate: getTodayString()
+        };
+    });
+
+    const [displayTime, setDisplayTime] = useState(session.accumulatedTime);
+    const [breakRemaining, setBreakRemaining] = useState(session.currentBreakTarget - session.accumulatedBreakTime);
+
+    // Heartbeat logic
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const today = getTodayString();
+            
+            setSession(prev => {
+                let newState = { ...prev };
+                
+                // Midnight crossover auto-stop
+                if (today !== newState.startDate) {
+                    handleStop(newState, true); // Force stop to save yesterday's data
+                    return newState; // Will unmount soon
+                }
+
+                if (newState.status === 'running' && newState.lastRunStartTime) {
+                    const elapsed = Math.floor((now - newState.lastRunStartTime) / 1000);
+                    setDisplayTime(newState.accumulatedTime + elapsed);
+                } else if (newState.status === 'break-running' && newState.lastBreakStartTime) {
+                    const elapsed = newState.accumulatedBreakTime + Math.floor((now - newState.lastBreakStartTime) / 1000);
+                    const remaining = newState.currentBreakTarget - elapsed;
+                    
+                    if (remaining <= 0) {
+                        newState = {
+                            ...newState,
+                            status: 'break-finished',
+                            accumulatedBreakTime: newState.currentBreakTarget,
+                            lastBreakStartTime: null
+                        };
+                        setBreakRemaining(0);
+                    } else {
+                        setBreakRemaining(remaining);
+                    }
+                }
+                
+                // Persist live state to local storage to survive crashes
+                localStorage.setItem('streakForge_activeSession', JSON.stringify(newState));
+                return newState;
+            });
+        }, 1000);
+        
         return () => clearInterval(interval);
-    }, [focusState.status, setFocusState]);
+    }, []);
 
     if (!activity) return null;
 
-    const todayData = appState.records[today]?.[activityId] || { time: 0, break: 0, breaks: [], goal: 0 };
-    const totalDisplayTime = todayData.time + focusState.time;
+    const todayData = appState.records[getTodayString()]?.[activityId] || { time: 0, break: 0, breaks: [], goal: 0 };
+    const totalDisplayTime = todayData.time + displayTime;
     
-    const handleStart = () => setFocusState(prev => ({ ...prev, status: 'running' }));
-    const handleBreakClick = () => setFocusState(prev => ({ ...prev, status: 'break-selection' }));
+    const handleStart = () => {
+        setSession(prev => ({
+            ...prev,
+            status: 'running',
+            lastRunStartTime: Date.now()
+        }));
+    };
+
+    const handlePause = () => {
+        setSession(prev => {
+            let elapsed = 0;
+            if (prev.lastRunStartTime) {
+                elapsed = Math.floor((Date.now() - prev.lastRunStartTime) / 1000);
+            }
+            return {
+                ...prev,
+                status: 'idle',
+                accumulatedTime: prev.accumulatedTime + elapsed,
+                lastRunStartTime: null
+            };
+        });
+    };
+
+    const handleBreakClick = () => {
+        handlePause();
+        setSession(prev => ({ ...prev, status: 'break-selection' }));
+    };
+
     const handleStartBreak = (seconds) => {
-        setFocusState(prev => ({
+        setSession(prev => ({
             ...prev,
             status: 'break-running',
-            breakRemaining: seconds,
-            currentBreakElapsed: 0
+            lastBreakStartTime: Date.now(),
+            currentBreakTarget: seconds,
+            accumulatedBreakTime: 0
         }));
+        setBreakRemaining(seconds);
     };
 
     const handleResumeFromBreak = () => {
-        const thisBreak = focusState.currentBreakElapsed || 0;
-        const newSessionBreaks = [...(focusState.sessionBreaks || []), thisBreak];
-        
-        setFocusState(prev => ({ 
-            ...prev, 
-            status: 'running',
-            currentBreakElapsed: 0,
-            sessionBreaks: newSessionBreaks
-        }));
+        setSession(prev => {
+            let elapsedBreak = prev.accumulatedBreakTime;
+            if (prev.status === 'break-running' && prev.lastBreakStartTime) {
+                elapsedBreak += Math.floor((Date.now() - prev.lastBreakStartTime) / 1000);
+            }
+            
+            const newSessionBreaks = [...prev.sessionBreaks];
+            if (elapsedBreak > 0) {
+                newSessionBreaks.push(elapsedBreak);
+            }
+            
+            return {
+                ...prev,
+                status: 'running',
+                lastRunStartTime: Date.now(),
+                lastBreakStartTime: null,
+                currentBreakTarget: 0,
+                accumulatedBreakTime: 0,
+                sessionBreaks: newSessionBreaks
+            };
+        });
     };
 
-    const handleStop = () => {
-        if (focusState.time > 0 || focusState.break > 0) {
+    const handleStop = (forcedSession = null, isCrossover = false) => {
+        const s = forcedSession || session;
+        const targetDate = s.startDate; // Save to the date it started
+        
+        let finalFocus = s.accumulatedTime;
+        if (s.status === 'running' && s.lastRunStartTime) {
+            finalFocus += Math.floor((Date.now() - s.lastRunStartTime) / 1000);
+        }
+        
+        let finalBreak = s.accumulatedBreakTime;
+        if (s.status === 'break-running' && s.lastBreakStartTime) {
+            finalBreak += Math.floor((Date.now() - s.lastBreakStartTime) / 1000);
+        }
+        
+        const finalBreaksArr = [...s.sessionBreaks];
+        if (finalBreak > 0) finalBreaksArr.push(finalBreak);
+        const totalBreakTime = finalBreaksArr.reduce((a, b) => a + b, 0);
+
+        if (finalFocus > 0 || totalBreakTime > 0) {
             const updatedRecords = { ...appState.records };
-            if (!updatedRecords[today]) updatedRecords[today] = {};
-            if (!updatedRecords[today][activityId]) updatedRecords[today][activityId] = { time: 0, break: 0, breaks: [], goal: 0 };
+            if (!updatedRecords[targetDate]) updatedRecords[targetDate] = {};
+            if (!updatedRecords[targetDate][activityId]) updatedRecords[targetDate][activityId] = { time: 0, break: 0, breaks: [], goal: 0 };
 
-            const finalBreaks = [...(updatedRecords[today][activityId].breaks || []), ...(focusState.sessionBreaks || [])];
-            if (focusState.status.startsWith('break') && focusState.currentBreakElapsed > 0) {
-                finalBreaks.push(focusState.currentBreakElapsed);
-            }
+            const prevBreaks = updatedRecords[targetDate][activityId].breaks || [];
 
-            updatedRecords[today][activityId] = {
-                ...updatedRecords[today][activityId],
-                time: updatedRecords[today][activityId].time + focusState.time,
-                break: (updatedRecords[today][activityId].break || 0) + focusState.break,
-                breaks: finalBreaks
+            updatedRecords[targetDate][activityId] = {
+                ...updatedRecords[targetDate][activityId],
+                time: updatedRecords[targetDate][activityId].time + finalFocus,
+                break: (updatedRecords[targetDate][activityId].break || 0) + totalBreakTime,
+                breaks: [...prevBreaks, ...finalBreaksArr]
             };
 
             let newStreak = { ...appState.streak };
-            if (activity.type === 'productive' && focusState.time > 0) {
-                if (newStreak.lastStreakDate !== today) {
-                    const yesterday = new Date();
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    const yStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            if (activity.type === 'productive' && finalFocus > 0) {
+                if (newStreak.lastStreakDate !== targetDate) {
+                    const yesterdayDate = new Date(targetDate);
+                    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                    const yStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
                     
                     if (newStreak.lastStreakDate === yStr) {
                         newStreak.current += 1;
-                    } else if (newStreak.lastStreakDate !== today) {
+                    } else if (newStreak.lastStreakDate !== targetDate) {
                         newStreak.current = 1;
                     }
-                    newStreak.lastStreakDate = today;
+                    newStreak.lastStreakDate = targetDate;
                     if (newStreak.current > newStreak.best) {
                         newStreak.best = newStreak.current;
                     }
@@ -112,17 +200,34 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
             }
             updateState({ records: updatedRecords, streak: newStreak });
         }
-        setFocusState({ status: 'idle', time: 0, break: 0, breakRemaining: 0, sessionBreaks: [], currentBreakElapsed: 0 });
-        onClose();
+        
+        localStorage.removeItem('streakForge_activeSession');
+        if (!isCrossover) {
+            onClose();
+        } else {
+            // If crossover, we automatically start a new session for the new day
+            setSession({
+                activityId,
+                status: 'idle',
+                lastRunStartTime: null,
+                accumulatedTime: 0,
+                lastBreakStartTime: null,
+                currentBreakTarget: 0,
+                accumulatedBreakTime: 0,
+                sessionBreaks: [],
+                startDate: getTodayString()
+            });
+            setDisplayTime(0);
+        }
     };
 
     const formattedTotalTimer = formatTime(totalDisplayTime);
     const bigTimerDisplay = totalDisplayTime < 3600 ? formattedTotalTimer.substring(3) : formattedTotalTimer;
     
-    const remTimer = formatTime(focusState.breakRemaining || 0);
-    const breakTimerDisplay = (focusState.breakRemaining || 0) < 3600 ? remTimer.substring(3) : remTimer;
+    const remTimer = formatTime(breakRemaining || 0);
+    const breakTimerDisplay = (breakRemaining || 0) < 3600 ? remTimer.substring(3) : remTimer;
 
-    const isBreakMode = focusState.status.startsWith('break');
+    const isBreakMode = session.status.startsWith('break');
 
     if (!isExpanded) {
         return (
@@ -162,7 +267,7 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                     </button>
                 </div>
 
-                {focusState.status === 'break-selection' ? (
+                {session.status === 'break-selection' ? (
                     <div>
                         <h3 style={{ fontSize: '1rem', color: '#9a3412', marginBottom: '1rem', textAlign: 'center' }}>Select Duration</h3>
                         <div className="floating-break-grid">
@@ -181,29 +286,29 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                         </div>
                         <button className="btn primary w-100" style={{ padding: '0.5rem' }} onClick={handleResumeFromBreak}>Cancel</button>
                     </div>
-                ) : focusState.status === 'break-running' || focusState.status === 'break-finished' ? (
+                ) : session.status === 'break-running' || session.status === 'break-finished' ? (
                     <div>
                         <div style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: focusState.status === 'break-finished' ? '#16a34a' : '#ea580c', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                {focusState.status === 'break-finished' ? 'FINISHED' : 'BREAK'}
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: session.status === 'break-finished' ? '#16a34a' : '#ea580c', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                                {session.status === 'break-finished' ? 'FINISHED' : 'BREAK'}
                             </div>
                             <div className="floating-timer-circle-mini" style={{ 
-                                boxShadow: focusState.status === 'break-finished' ? '0 0 0 4px #dcfce7' : '0 0 0 4px #ffedd5',
-                                color: focusState.status === 'break-finished' ? '#16a34a' : '#ea580c',
-                                animation: focusState.status === 'break-finished' ? 'pulse 2s infinite' : 'none'
+                                boxShadow: session.status === 'break-finished' ? '0 0 0 4px #dcfce7' : '0 0 0 4px #ffedd5',
+                                color: session.status === 'break-finished' ? '#16a34a' : '#ea580c',
+                                animation: session.status === 'break-finished' ? 'pulse 2s infinite' : 'none'
                             }}>
                                 {breakTimerDisplay}
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <button className="btn primary w-100" style={{ background: focusState.status === 'break-finished' ? 'var(--success)' : '' }} onClick={handleResumeFromBreak}>
+                            <button className="btn primary w-100" style={{ background: session.status === 'break-finished' ? 'var(--success)' : '' }} onClick={handleResumeFromBreak}>
                                 ▶ Resume Focus
                             </button>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button className="btn outline flex-1" style={{ padding: '0.5rem', fontSize: '0.8rem' }} onClick={() => handleStartBreak((focusState.breakRemaining || 0) + 300)}>
+                                <button className="btn outline flex-1" style={{ padding: '0.5rem', fontSize: '0.8rem' }} onClick={() => handleStartBreak((breakRemaining || 0) + 300)}>
                                     + 5m
                                 </button>
-                                <button className="btn outline flex-1" style={{ padding: '0.5rem', fontSize: '0.8rem' }} onClick={handleStop}>
+                                <button className="btn outline flex-1" style={{ padding: '0.5rem', fontSize: '0.8rem' }} onClick={() => handleStop(null, false)}>
                                     <Square size={14} style={{ marginRight: '0.25rem' }} /> Stop
                                 </button>
                             </div>
@@ -224,9 +329,9 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                                 <Pause size={16} />
                             </button>
                             <button className="btn primary flex-2" style={{ padding: '0.75rem' }} onClick={handleStart}>
-                                {focusState.status === 'idle' && focusState.time > 0 ? 'Resume' : 'Start'}
+                                {session.status === 'idle' && displayTime > 0 ? 'Resume' : 'Start'}
                             </button>
-                            <button className="btn outline flex-1" style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '0.75rem' }} onClick={handleStop}>
+                            <button className="btn outline flex-1" style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '0.75rem' }} onClick={() => handleStop(null, false)}>
                                 <Square size={16} />
                             </button>
                         </div>

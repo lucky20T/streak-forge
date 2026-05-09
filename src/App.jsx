@@ -6,6 +6,7 @@ import ExerciseView from './components/ExerciseView';
 import MoneyView from './components/MoneyView';
 import ManageView from './components/ManageView';
 import ManageActivitiesView from './components/ManageActivitiesView';
+import ManageExercisesView from './components/ManageExercisesView';
 import FocusModal from './components/FocusModal';
 import ManageActivitiesModal from './components/ManageActivitiesModal';
 import ManageExercisesModal from './components/ManageExercisesModal';
@@ -44,7 +45,7 @@ function App() {
             <ExerciseView 
                 appState={appState} 
                 updateState={updateState} 
-                openManage={() => setActiveView('view-manage')}
+                openManage={() => setActiveView('view-manage-exercises')}
             />
         )}
 
@@ -66,6 +67,13 @@ function App() {
 
         {activeView === 'view-manage-activities' && (
             <ManageActivitiesView 
+                appState={appState} 
+                updateState={updateState} 
+            />
+        )}
+
+        {activeView === 'view-manage-exercises' && (
+            <ManageExercisesView 
                 appState={appState} 
                 updateState={updateState} 
             />

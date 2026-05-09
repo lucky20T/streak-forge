@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { getTodayString, generateId, getCurrentTime } from '../utils';
 import TopHeader from './TopHeader';
+import LogMealModal from './LogMealModal';
+import LogExerciseModal from './LogExerciseModal';
 
 export default function ExerciseView({ appState, updateState, openManage }) {
+    const [isMealModalOpen, setIsMealModalOpen] = useState(false);
+    const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
+    const [workoutComplete, setWorkoutComplete] = useState(false);
+
     const today = getTodayString();
     const todayLogs = appState.exerciseRecords[today] || [];
     
@@ -42,6 +48,12 @@ export default function ExerciseView({ appState, updateState, openManage }) {
         });
     };
 
+    const handleCompleteWorkout = () => {
+        setWorkoutComplete(true);
+        // Reset visual after 3 seconds
+        setTimeout(() => setWorkoutComplete(false), 3000);
+    };
+
     return (
         <div className="app-container">
             <TopHeader title="Exercise & Nutrition" onManage={openManage} />
@@ -55,53 +67,73 @@ export default function ExerciseView({ appState, updateState, openManage }) {
                     <section className="panel" style={{ padding: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                                <span style={{ color: 'var(--success)' }}>🏋️</span> Today's Routine: <span style={{ fontWeight: 400 }}>Custom</span>
+                                <span style={{ color: 'var(--success)' }}>🏋️</span> Today's Routine: <span style={{ fontWeight: 400 }}>Push Day</span>
                             </div>
-                            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer' }}>Edit Routine</span>
+                            <span 
+                                style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer' }}
+                                onClick={() => setIsExerciseModalOpen(true)}
+                            >
+                                Edit Routine
+                            </span>
                         </div>
+                        
+                        <div style={{ height: '1px', background: 'var(--border-color)', margin: '0 -2rem 1rem -2rem' }}></div>
 
                         <ul className="routine-list">
                             {todayLogs.length === 0 ? (
                                 <li className="routine-item" style={{ justifyContent: 'center', color: 'var(--text-secondary)', border: 'none' }}>
-                                    No exercises logged today. Use "Manage" to add logs.
+                                    No exercises logged today. Click "Edit Routine" to log.
                                 </li>
                             ) : (
-                                todayLogs.map(log => {
+                                todayLogs.map((log, idx) => {
                                     const ex = appState.exercises.find(e => e.id === log.exerciseId);
                                     return (
-                                        <li className="routine-item" key={log.id}>
+                                        <li className="routine-item" key={log.id} style={{ borderBottom: idx !== todayLogs.length - 1 ? '1px solid var(--border-color)' : 'none', padding: '1rem 0' }}>
                                             <span style={{ fontWeight: 500 }}>{ex ? ex.name : 'Unknown'}</span>
-                                            <span className="routine-tag">{log.sets} sets x {log.reps} reps</span>
+                                            <span style={{ background: '#f3f4f6', color: '#4b5563', fontSize: '0.75rem', fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                                                {log.sets} sets x {log.reps} reps
+                                            </span>
                                         </li>
                                     );
                                 })
                             )}
                         </ul>
 
-                        <button className="btn primary large w-100" style={{ marginTop: '1.5rem', padding: '1rem' }}>
-                            Complete Workout
+                        <button 
+                            className={`btn large w-100 ${workoutComplete ? '' : 'primary'}`} 
+                            style={{ 
+                                marginTop: '1.5rem', 
+                                padding: '1rem',
+                                background: workoutComplete ? 'var(--success)' : '#000',
+                                color: 'white',
+                                border: 'none',
+                                fontWeight: 500
+                            }}
+                            onClick={handleCompleteWorkout}
+                        >
+                            {workoutComplete ? 'Workout Completed! 🎉' : 'Complete Workout'}
                         </button>
                     </section>
 
                     <div className="stats-grid-clean">
                         <div className="stat-card-clean">
-                            <span className="label">Total Reps</span>
+                            <span className="label">TOTAL REPS</span>
                             <span className="val">{totalReps}</span>
                         </div>
                         <div className="stat-card-clean">
-                            <span className="label">Total Sets</span>
+                            <span className="label">TOTAL SETS</span>
                             <span className="val">{totalSets}</span>
                         </div>
                         <div className="stat-card-clean">
-                            <span className="label">Most Performed</span>
-                            <span className="val" style={{ fontSize: '1.1rem', marginTop: '0.5rem' }}>{mostPerformed}</span>
+                            <span className="label">MOST PERFORMED</span>
+                            <span className="val" style={{ fontSize: '1.25rem' }}>{mostPerformed}</span>
                         </div>
                     </div>
                 </div>
 
                 {/* RIGHT COLUMN: Hydration & Meals */}
                 <div>
-                    <section className="hydration-card">
+                    <section className="panel" style={{ background: '#dcfce7', border: '1px solid #bbf7d0', padding: '1.5rem', marginBottom: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: '#065f46' }}>
                                 <span>💧</span> Hydration
@@ -110,8 +142,8 @@ export default function ExerciseView({ appState, updateState, openManage }) {
                         </div>
                         
                         <button 
-                            className="btn primary large w-100" 
-                            style={{ background: 'var(--success)', color: 'white', marginBottom: '1.5rem', border: 'none' }}
+                            className="btn large w-100" 
+                            style={{ background: '#16a34a', color: 'white', marginBottom: '1.5rem', border: 'none', fontWeight: 600 }}
                             onClick={handleLogWater}
                         >
                             + Water
@@ -119,7 +151,7 @@ export default function ExerciseView({ appState, updateState, openManage }) {
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                             {waterLogs.map(log => (
-                                <div key={log.id} style={{ background: '#d1fae5', color: '#065f46', fontSize: '0.7rem', fontWeight: 600, padding: '0.3rem 0.6rem', borderRadius: '12px' }}>
+                                <div key={log.id} style={{ background: '#bbf7d0', color: '#065f46', fontSize: '0.65rem', fontWeight: 700, padding: '0.3rem 0.6rem', borderRadius: '12px' }}>
                                     {log.timestamp}
                                 </div>
                             ))}
@@ -131,8 +163,15 @@ export default function ExerciseView({ appState, updateState, openManage }) {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
                                 <span>🍴</span> Meal Log
                             </div>
-                            <span style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer' }}>Add Meal</span>
+                            <span 
+                                style={{ color: 'var(--accent)', fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer' }}
+                                onClick={() => setIsMealModalOpen(true)}
+                            >
+                                Add Meal
+                            </span>
                         </div>
+                        
+                        <div style={{ height: '1px', background: 'var(--border-color)', margin: '0 -1.5rem 1.5rem -1.5rem' }}></div>
 
                         <ul className="meal-log-list">
                             {meals.length === 0 ? (
@@ -169,6 +208,23 @@ export default function ExerciseView({ appState, updateState, openManage }) {
                     </section>
                 </div>
             </div>
+
+            {/* Modals */}
+            {isMealModalOpen && (
+                <LogMealModal 
+                    appState={appState} 
+                    updateState={updateState} 
+                    onClose={() => setIsMealModalOpen(false)} 
+                />
+            )}
+            
+            {isExerciseModalOpen && (
+                <LogExerciseModal 
+                    appState={appState} 
+                    updateState={updateState} 
+                    onClose={() => setIsExerciseModalOpen(false)} 
+                />
+            )}
         </div>
     );
 }

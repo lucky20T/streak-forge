@@ -426,29 +426,54 @@ p { color: var(--text-secondary); font-size: 0.9rem; }
     font-weight: 500;
 }
 
+.meal-log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.meal-log-item {
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.meal-log-item .time {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Stats clean */
 .stats-grid-clean {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
-    margin-top: 1rem;
 }
 
 .stat-card-clean {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
 .stat-card-clean .label {
     font-size: 0.65rem;
-    text-transform: uppercase;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-secondary);
+    text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
 }

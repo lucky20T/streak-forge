@@ -7,21 +7,24 @@ import MoneyView from './components/MoneyView';
 import ManageView from './components/ManageView';
 import ManageActivitiesView from './components/ManageActivitiesView';
 import ManageExercisesView from './components/ManageExercisesView';
-import FocusModal from './components/FocusModal';
+import FloatingTimer from './components/FloatingTimer';
 import ManageActivitiesModal from './components/ManageActivitiesModal';
 import ManageExercisesModal from './components/ManageExercisesModal';
 
 function App() {
   const { appState, updateState } = useAppState();
   const [activeView, setActiveView] = useState('view-activity');
-  const [activeModal, setActiveModal] = useState(null); // 'focus', 'manage-activities', 'manage-exercises'
+  const [activeModal, setActiveModal] = useState(null); // 'manage-activities', 'manage-exercises'
   const [activeFocusId, setActiveFocusId] = useState(null);
   
   // Timer state for Focus Mode
   const [focusState, setFocusState] = useState({
-      status: 'idle', // 'idle', 'running', 'break'
+      status: 'idle', // 'idle', 'running', 'break-selection', 'break-running', 'break-finished'
       time: 0,
-      break: 0
+      break: 0,
+      breakRemaining: 0,
+      sessionBreaks: [],
+      currentBreakElapsed: 0
   });
 
   return (
@@ -35,7 +38,6 @@ function App() {
                 updateState={updateState} 
                 openFocus={(id) => {
                     setActiveFocusId(id);
-                    setActiveModal('focus');
                 }}
                 openManage={() => setActiveView('view-manage-activities')}
             />
@@ -80,21 +82,19 @@ function App() {
         )}
       </main>
 
-      {/* Modals */}
-      {activeModal === 'focus' && (
-          <FocusModal 
+      {/* Floating Timer (Global) */}
+      {activeFocusId && (
+          <FloatingTimer 
               appState={appState}
               updateState={updateState}
               activityId={activeFocusId}
-              onClose={() => {
-                  setActiveModal(null);
-                  setActiveFocusId(null);
-              }}
+              onClose={() => setActiveFocusId(null)}
               focusState={focusState}
               setFocusState={setFocusState}
           />
       )}
 
+      {/* Legacy Modals */}
       {activeModal === 'manage-activities' && (
           <ManageActivitiesModal 
               appState={appState}

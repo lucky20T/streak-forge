@@ -28,6 +28,32 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
         entPercent = Math.round((entertainmentTime / totalTrackedTime) * 100);
     }
 
+    // Break Analytics Logic
+    let totalBreakTime = 0;
+    let allBreaks = [];
+    if (appState.records[today]) {
+        for (const actId in appState.records[today]) {
+            const breaks = appState.records[today][actId].breaks || [];
+            allBreaks = [...allBreaks, ...breaks];
+        }
+    }
+    totalBreakTime = allBreaks.reduce((a, b) => a + b, 0);
+    const breakCount = allBreaks.length;
+
+    let breakInsight = "No breaks taken yet today.";
+    if (breakCount > 0) {
+        const avgBreak = totalBreakTime / breakCount;
+        if (breakCount > 4 && avgBreak < 300) {
+            breakInsight = "You took many short breaks today.";
+        } else if (totalBreakTime > productiveTime * 0.3 && productiveTime > 0) {
+            breakInsight = "You might be taking too much break time compared to focus time.";
+        } else if (avgBreak >= 300 && avgBreak <= 900) {
+            breakInsight = "Break balance looks healthy.";
+        } else {
+            breakInsight = "Focus sessions are becoming longer.";
+        }
+    }
+
     const activeActivities = appState.activities.filter(a => !a.archived);
 
     // Helper to get an icon based on name
@@ -77,6 +103,41 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                         <h3 style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
                             {activeActivities.length > 0 ? activeActivities[0].name : '-'}
                         </h3>
+                    </div>
+                </section>
+
+                <section className="panel flex-1" style={{ padding: '2rem' }}>
+                    <h2 style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '1px' }}>Break Analytics</h2>
+                    
+                    <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 700, color: '#b45309', marginBottom: '0.25rem' }}>
+                            {formatHoursMins(totalBreakTime)}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Total Break Time Today</div>
+                    </div>
+
+                    <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#b45309', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+                            <span>☕</span> Insight
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#92400e', lineHeight: 1.4 }}>
+                            {breakInsight}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Recent Breaks ({breakCount})</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {allBreaks.length === 0 ? (
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>-</span>
+                            ) : (
+                                allBreaks.map((b, i) => (
+                                    <span key={i} style={{ background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                        {Math.round(b / 60)} min
+                                    </span>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </section>
             </div>

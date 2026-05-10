@@ -61,12 +61,16 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
         ctx.stroke();
 
         const pointSpacing = (width - 40) / data.labels.length;
+        const maxBarWidth = 60;
+        const actualBarWidth = Math.min(pointSpacing * 0.8, maxBarWidth);
+        
         ctx.font = '500 11px Inter, sans-serif';
         ctx.textAlign = 'center';
 
         if (type === 'bar') {
             for (let i = 0; i < data.labels.length; i++) {
-                const x = 20 + i * pointSpacing + (pointSpacing * 0.1);
+                // Center the bar within the pointSpacing slot
+                const x = 20 + i * pointSpacing + (pointSpacing - actualBarWidth) / 2;
                 let currentY = ht - 30;
                 let totalStackHeight = 0;
 
@@ -76,7 +80,7 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
                         const h = (val / maxVal) * (ht - 50);
                         currentY -= h;
                         ctx.fillStyle = ds.color || '#2563eb';
-                        ctx.fillRect(x, currentY, pointSpacing * 0.8, h);
+                        ctx.fillRect(x, currentY, actualBarWidth, h);
                         totalStackHeight += h;
                     }
                 });
@@ -84,12 +88,12 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
                 // If empty, draw subtle gray base
                 if (totalStackHeight === 0) {
                     ctx.fillStyle = '#e5e7eb';
-                    ctx.fillRect(x, ht - 30 - 10, pointSpacing * 0.8, 10);
+                    ctx.fillRect(x, ht - 30 - 10, actualBarWidth, 10);
                 }
                 
                 // X-axis label
                 ctx.fillStyle = '#6b7280';
-                ctx.fillText(data.labels[i], x + (pointSpacing * 0.4), ht - 10);
+                ctx.fillText(data.labels[i], x + (actualBarWidth / 2), ht - 10);
             }
         } else if (type === 'line') {
             // Draw x-axis labels first

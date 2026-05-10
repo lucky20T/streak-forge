@@ -272,7 +272,7 @@ export default function AnalyticsView({ appState }) {
                         data={chartDataActivity} 
                         height={250} 
                         isStacked={true} 
-                        type={filter === 'This Week' ? 'bar' : 'line'}
+                        type={(filter === 'This Week' || filter === 'Today' || filter === 'Yesterday') ? 'bar' : 'line'}
                         minPointWidth={40}
                     />
 

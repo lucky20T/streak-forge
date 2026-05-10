@@ -1,8 +1,10 @@
 # ⚡ Streak Forge
 
-A minimal, powerful, browser-based productivity dashboard designed to help you build discipline through consistency. Streak Forge allows you to track focus sessions, analyze your work-life balance, log workouts and nutrition, and monitor finances—all in a sleek, modern SaaS interface.
+**Live Demo:** [https://streak-forge-omega.vercel.app/](https://streak-forge-omega.vercel.app/)
 
-Everything runs entirely locally in your browser, with all data saved safely via `localStorage`.
+A minimal, powerful, and mobile-responsive productivity dashboard designed to help you build discipline through consistency. Streak Forge allows you to track focus sessions, analyze your work-life balance, log workouts and nutrition, and monitor finances—all in a sleek, modern SaaS interface.
+
+Streak Forge follows an **offline-first** philosophy, using local storage as the primary live state, with seamless **Firebase Cloud Sync** for cross-device backups.
 
 ## ✨ Features
 
@@ -17,19 +19,29 @@ Everything runs entirely locally in your browser, with all data saved safely via
 - **Workout Logging**: Log daily routines with sets and reps, tracking the most performed exercises.
 - **Hydration Tracking**: Quickly log glasses of water and monitor daily hydration times.
 - **Meal Logging**: Track your meals with smart categorization (High Protein, Balanced Meal, Junk Food, etc.), complete with visual health indicators.
-- **Routine Management**: Add your own custom exercises and assign them to categories, or archive old ones without losing historical data.
+- **Routine Management**: Add your own custom exercises and assign them to categories.
 
 ### 💰 Financial Dashboard
 - **Intelligent Budgeting**: Set category budgets and watch real-time progress bars update as you log expenses.
 - **Dynamic Income Sources**: Track multiple income streams and see their exact percentage contribution to your total income.
 - **Expense Tracking**: Log daily transactions seamlessly. The system automatically calculates Total Income, Total Expenses, Remaining Balance, and % Income Spent.
 
+### 📈 Advanced Analytics
+- **Date-Based Filtering**: Analyze your performance by Day, Week, Month, or custom date ranges.
+- **Dynamic Distribution**: Interactive pie charts for Activity, Subcategory, and Category breakdown.
+- **Smart Insights**: Automatically generated text insights based on your performance trends.
+
+### 📱 Mobile-First Design
+- **Bottom Navigation**: Sleek, app-like bottom navigation bar on mobile devices.
+- **Fully Responsive**: Optimized for every screen size, from desktop dashboards to handheld tracking.
+
 ## 🛠️ Technology Stack
 - **React**: Component-based UI architecture.
 - **Vite**: Ultra-fast frontend tooling.
-- **Vanilla CSS**: Custom sleek UI with interactive hover states and responsive layouts without heavy frameworks.
+- **Firebase**: Secure Google Sign-In and Firestore for multi-device data synchronization.
+- **Vanilla CSS**: Custom sleek UI with interactive hover states and responsive layouts.
 - **Lucide React**: Beautiful, consistent iconography.
-- **Data Persistence**: Utilizes `localStorage` (`streakForgeDataV3`) for entirely private, offline data storage.
+- **Data Persistence**: Uses `localStorage` for live state and Firestore for cloud backups.
 
 ## 🚀 How to Run
 

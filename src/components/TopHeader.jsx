@@ -1,4 +1,4 @@
-import { Bell, Cloud, CloudOff, RefreshCw, LogOut, LogIn } from 'lucide-react';
+import { Bell, Cloud, CloudOff, RefreshCw, LogOut } from 'lucide-react';
 
 const SYNC_LABEL = {
     idle:    { text: 'Cloud Sync Disabled', color: '#9ca3af' },
@@ -69,17 +69,7 @@ export default function TopHeader({ title, onManage, user, syncStatus, onSignIn,
                             <LogOut size={16} />
                         </button>
                     </>
-                ) : (
-                    onSignIn && (
-                        <button
-                            onClick={onSignIn}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.85rem', borderRadius: '20px', border: '1px solid var(--border-color)', background: '#fff', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)' }}
-                        >
-                            <LogIn size={14} />
-                            Sign in
-                        </button>
-                    )
-                )}
+                ) : null}
 
                 <Bell size={20} className="header-icon" />
                 {onManage && (

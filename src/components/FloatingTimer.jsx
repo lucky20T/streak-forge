@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getTodayString, formatTime } from '../utils';
 import { Play, Pause, Square, Maximize2, Minimize2, Coffee } from 'lucide-react';
 
-export default function FloatingTimer({ appState, updateState, activityId, onClose }) {
+export default function FloatingTimer({ appState, updateState, activityId, onClose, triggerSync }) {
     const activity = appState.activities.find(a => a.id === activityId);
     const [isExpanded, setIsExpanded] = useState(true);
     const [customBreakMins, setCustomBreakMins] = useState(15);
@@ -199,6 +199,7 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                 }
             }
             updateState({ records: updatedRecords, streak: newStreak });
+            if (triggerSync) triggerSync();
         }
         
         localStorage.removeItem('streakForge_activeSession');

@@ -88,13 +88,16 @@ function App() {
 
   // ── Auto-sync on state changes ──────────────────────────────────────────
   useEffect(() => {
-    if (!user || isMergingRef.current) return;
+    if (!user) return;
     
     const timeoutId = setTimeout(() => {
+      // If we're currently merging remote data, don't upload immediately
+      if (isMergingRef.current) return;
+
       uploadData(user.uid, appStateRef.current)
         .then(() => setSyncStatus('synced'))
         .catch(() => setSyncStatus('error'));
-    }, 5000); 
+    }, 2000); // Reduce to 2s for better responsiveness
 
     return () => clearTimeout(timeoutId);
   }, [appState, user]);
@@ -184,11 +187,8 @@ function App() {
               appState={appState}
               updateState={updateState}
               activityId={activeFocusId}
-              onClose={async () => {
-                  setActiveFocusId(null);
-                  // Sync after session ends
-                  await triggerSync();
-              }}
+              onClose={() => setActiveFocusId(null)}
+              triggerSync={triggerSync}
           />
       )}
 

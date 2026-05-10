@@ -99,7 +99,7 @@ export function mergeStates(localState, cloudState) {
                     } else {
                         const localVal = localDateData[id];
                         const cloudVal = cloudDateData[id];
-                        
+                        // For activity logs: take max time
                         if (typeof localVal.time === 'number') {
                             cloudDateData[id] = {
                                 ...cloudVal,
@@ -107,10 +107,20 @@ export function mergeStates(localState, cloudState) {
                                 break: Math.max(localVal.break || 0, cloudVal.break || 0),
                                 breaks: Array.from(new Set([...(localVal.breaks || []), ...(cloudVal.breaks || [])]))
                             };
-                        } else {
-                            if (date === today) {
+                        } else if (Array.isArray(localVal)) {
+                            // For exercises (arrays of sets): union by index or just prefer the one with more entries
+                            if (localVal.length >= cloudVal.length) {
                                 cloudDateData[id] = localVal;
                             }
+                        } else if (typeof localVal === 'object' && localVal !== null) {
+                            // For nutrition (meals/water objects): merge properties
+                            cloudDateData[id] = {
+                                ...cloudVal,
+                                ...localVal,
+                                // Special case for meals and water arrays
+                                meals: Array.from(new Set([...(cloudVal.meals || []), ...(localVal.meals || [])])),
+                                water: Array.from(new Set([...(cloudVal.water || []), ...(localVal.water || [])]))
+                            };
                         }
                     }
                 });

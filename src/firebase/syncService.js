@@ -53,41 +53,60 @@ export async function downloadData(userId) {
 /**
  * Merge cloud data with local data on login.
  * Strategy:
- *   - Merge records by date (union of both, prefer local for today)
- *   - For activities, prefer cloud (multi-device source of truth)
- *   - Keep local streak if cloud streak is older
+ *   - For each date, merge individual activity logs (take max time/value)
+ *   - For activities/exercises/money definitions, prefer cloud
+ *   - Keep higher streak
  */
 export function mergeStates(localState, cloudState) {
     if (!cloudState) return localState;
 
     const today = new Date().toISOString().slice(0, 10);
 
-    // Merge records: union of all dates, prefer local for today
-    const mergedRecords = { ...cloudState.records };
-    Object.keys(localState.records || {}).forEach(date => {
-        if (date === today) {
-            // Always keep local for today (active session)
-            mergedRecords[date] = localState.records[date];
-        } else if (!mergedRecords[date]) {
-            mergedRecords[date] = localState.records[date];
-        }
-    });
+    // Helper to merge date-based maps (records, exerciseRecords, nutritionRecords)
+    const mergeDateMaps = (localMap, cloudMap) => {
+        const merged = { ...cloudMap };
+        Object.keys(localMap || {}).forEach(date => {
+            if (!merged[date]) {
+                merged[date] = localMap[date];
+            } else {
+                // Merge the entries for this specific date
+                const localDateData = localMap[date];
+                const cloudDateData = merged[date];
+                
+                Object.keys(localDateData).forEach(id => {
+                    if (!cloudDateData[id]) {
+                        cloudDateData[id] = localDateData[id];
+                    } else {
+                        // Both have data for this ID on this date
+                        // Compare and take the more "complete" one
+                        const localVal = localDateData[id];
+                        const cloudVal = cloudDateData[id];
+                        
+                        // For activity logs: take max time
+                        if (typeof localVal.time === 'number') {
+                            cloudDateData[id] = {
+                                ...cloudVal,
+                                time: Math.max(localVal.time || 0, cloudVal.time || 0),
+                                break: Math.max(localVal.break || 0, cloudVal.break || 0),
+                                // merge breaks array if they exist
+                                breaks: Array.from(new Set([...(localVal.breaks || []), ...(cloudVal.breaks || [])]))
+                            };
+                        } else {
+                            // For others (exercise/nutrition), just prefer local if it's today, else cloud
+                            if (date === today) {
+                                cloudDateData[id] = localVal;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+        return merged;
+    };
 
-    // Merge exercise records
-    const mergedExerciseRecords = { ...cloudState.exerciseRecords };
-    Object.keys(localState.exerciseRecords || {}).forEach(date => {
-        if (!mergedExerciseRecords[date]) {
-            mergedExerciseRecords[date] = localState.exerciseRecords[date];
-        }
-    });
-
-    // Merge nutrition records
-    const mergedNutritionRecords = { ...cloudState.nutritionRecords };
-    Object.keys(localState.nutritionRecords || {}).forEach(date => {
-        if (!mergedNutritionRecords[date]) {
-            mergedNutritionRecords[date] = localState.nutritionRecords[date];
-        }
-    });
+    const mergedRecords = mergeDateMaps(localState.records, cloudState.records);
+    const mergedExerciseRecords = mergeDateMaps(localState.exerciseRecords, cloudState.exerciseRecords);
+    const mergedNutritionRecords = mergeDateMaps(localState.nutritionRecords, cloudState.nutritionRecords);
 
     // Choose streak with higher current value
     const streak = (localState.streak?.current || 0) >= (cloudState.streak?.current || 0)
@@ -95,12 +114,11 @@ export function mergeStates(localState, cloudState) {
         : cloudState.streak;
 
     return {
-        ...cloudState,           // base: cloud (activities, exercises list, money config)
+        ...cloudState,           // base: cloud definitions
         records: mergedRecords,
         exerciseRecords: mergedExerciseRecords,
         nutritionRecords: mergedNutritionRecords,
         streak,
-        // always keep local money transactions merged
         money: mergeMoney(localState.money, cloudState.money),
     };
 }

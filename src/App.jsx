@@ -77,6 +77,20 @@ function App() {
     }
   }, [user]);
 
+  // ── Auto-sync on state changes ──────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    
+    // Use a small timeout to debounce rapid changes
+    const timeoutId = setTimeout(() => {
+      uploadData(user.uid, appStateRef.current)
+        .then(() => setSyncStatus('synced'))
+        .catch(() => setSyncStatus('error'));
+    }, 5000); // Wait 5s of idle before uploading
+
+    return () => clearTimeout(timeoutId);
+  }, [appState, user]);
+
   // ── Sync on page unload ──────────────────────────────────────────────────
   useEffect(() => {
     const handleUnload = () => {

@@ -210,18 +210,8 @@ export default function AnalyticsView({ appState }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Deep dive into your personal data and trends.</p>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <FilterButton label="Today" />
-                    <FilterButton label="Yesterday" />
                     <FilterButton label="This Week" />
                     <FilterButton label="This Month" />
-                    <input 
-                        type="date" 
-                        style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid var(--border-color)', fontSize: '0.85rem', outline: 'none', background: '#fff', cursor: 'pointer' }}
-                        value={/^\d{4}-\d{2}-\d{2}$/.test(filter) ? filter : ''}
-                        onChange={(e) => {
-                            if (e.target.value) setFilter(e.target.value);
-                        }}
-                    />
                 </div>
             </div>
 

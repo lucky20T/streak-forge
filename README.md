@@ -1,8 +1,14 @@
 # ⚡ Streak Forge
 
+![Streak Forge Banner](./public/streak-forge.png)
+
 **Live Demo:** [https://streak-forge-omega.vercel.app/](https://streak-forge-omega.vercel.app/)
 
-A minimal, powerful, and mobile-responsive productivity dashboard designed to help you build discipline through consistency. Streak Forge allows you to track focus sessions, analyze your work-life balance, log workouts and nutrition, and monitor finances—all in a sleek, modern SaaS interface.
+> [!NOTE]
+> **This project is Vibe Coded.** 🌊
+> Built with intense focus on aesthetics, rapid iteration, and the perfect productivity "vibe".
+
+Streak Forge is a minimal, powerful, and mobile-responsive productivity dashboard designed to help you build discipline through consistency. Track focus sessions, analyze work-life balance, log workouts, and monitor finances—all in a sleek, premium interface.
 
 Streak Forge follows an **offline-first** philosophy, using local storage as the primary live state, with seamless **Firebase Cloud Sync** for cross-device backups.
 
@@ -11,24 +17,23 @@ Streak Forge follows an **offline-first** philosophy, using local storage as the
 ### 📊 Activity Tracking & Focus Mode
 - **Categorized Activities**: Manage activities by categorizing them as **Productive** or **Entertainment**. 
 - **Zen Focus Timer**: A distraction-free floating timer to log your focus sessions, including support for breaks.
-- **Balance Insights**: Real-time feedback calculating the ratio between your productive time and entertainment time, plus intelligent break analytics.
+- **Balance Insights**: Real-time feedback calculating the ratio between your productive time and entertainment time.
 - **Activity Streaks**: Maintain daily streaks for activities you log consistently.
-- **Productivity Graph**: A stacked HTML Canvas bar chart visualizing your daily productive vs. entertainment hours.
+- **Productivity Graph**: Custom HTML Canvas visualizations of your focus trends.
 
 ### 🏋️ Exercise & Nutrition Tracking
-- **Workout Logging**: Log daily routines with sets and reps, tracking the most performed exercises.
-- **Hydration Tracking**: Quickly log glasses of water and monitor daily hydration times.
-- **Meal Logging**: Track your meals with smart categorization (High Protein, Balanced Meal, Junk Food, etc.), complete with visual health indicators.
-- **Routine Management**: Add your own custom exercises and assign them to categories.
+- **Workout Logging**: Log daily routines with sets and reps.
+- **Hydration Tracking**: Quickly log glasses of water and monitor daily intake.
+- **Meal Logging**: Track meals with smart categorization (High Protein, Balanced, Junk Food, etc.).
 
 ### 💰 Financial Dashboard
-- **Intelligent Budgeting**: Set category budgets and watch real-time progress bars update as you log expenses.
-- **Dynamic Income Sources**: Track multiple income streams and see their exact percentage contribution to your total income.
-- **Expense Tracking**: Log daily transactions seamlessly. The system automatically calculates Total Income, Total Expenses, Remaining Balance, and % Income Spent.
+- **Intelligent Budgeting**: Set category budgets and watch real-time progress bars.
+- **Dynamic Income Sources**: Track multiple income streams and their contributions.
+- **Expense Tracking**: Log daily transactions with automatic balance calculations.
 
 ### 📈 Advanced Analytics
-- **Date-Based Filtering**: Analyze your performance by Day, Week, Month, or custom date ranges.
-- **Dynamic Distribution**: Interactive pie charts for Activity, Subcategory, and Category breakdown.
+- **Weekly & Monthly Trends**: Deep dive into your performance over the last 7 or 30 days.
+- **Dynamic Distribution**: Interactive pie charts for Activity and Subcategory breakdown.
 - **Smart Insights**: Automatically generated text insights based on your performance trends.
 
 ### 📱 Mobile-First Design
@@ -38,8 +43,8 @@ Streak Forge follows an **offline-first** philosophy, using local storage as the
 ## 🛠️ Technology Stack
 - **React**: Component-based UI architecture.
 - **Vite**: Ultra-fast frontend tooling.
-- **Firebase**: Secure Google Sign-In and Firestore for multi-device data synchronization.
-- **Vanilla CSS**: Custom sleek UI with interactive hover states and responsive layouts.
+- **Firebase**: Secure Google Sign-In and Firestore for multi-device synchronization.
+- **Vanilla CSS**: Custom sleek UI with glassmorphism and modern aesthetics.
 - **Lucide React**: Beautiful, consistent iconography.
 - **Data Persistence**: Uses `localStorage` for live state and Firestore for cloud backups.
 

@@ -247,11 +247,24 @@ p { color: var(--text-secondary); font-size: 0.9rem; }
     margin-bottom: 2rem;
 }
 
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid.two-col {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 .flex-2 { flex: 2; }
 .flex-1 { flex: 1; }
 
 @media (max-width: 900px) {
     .analytics-row { flex-direction: column; }
+    .dashboard-grid { grid-template-columns: 1fr; }
 }
 
 /* Custom Overrides for new UI */

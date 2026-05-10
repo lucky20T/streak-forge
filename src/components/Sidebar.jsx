@@ -1,4 +1,4 @@
-import { Activity, Dumbbell, Wallet, UserCircle, Settings } from 'lucide-react';
+import { Activity, Dumbbell, Wallet, UserCircle, Settings, BarChart2 } from 'lucide-react';
 
 export default function Sidebar({ activeView, setActiveView }) {
     return (
@@ -30,6 +30,13 @@ export default function Sidebar({ activeView, setActiveView }) {
                     >
                         <span className="nav-icon"><Wallet size={18} /></span>
                         <span>Money</span>
+                    </button>
+                    <button 
+                        className={`nav-item ${activeView === 'view-analytics' ? 'active' : ''}`} 
+                        onClick={() => setActiveView('view-analytics')}
+                    >
+                        <span className="nav-icon"><BarChart2 size={18} /></span>
+                        <span>Analytics</span>
                     </button>
                 </div>
                 

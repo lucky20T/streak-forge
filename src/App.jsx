@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import ActivityView from './components/ActivityView';
 import ExerciseView from './components/ExerciseView';
 import MoneyView from './components/MoneyView';
+import AnalyticsView from './components/AnalyticsView';
 import ManageActivitiesView from './components/ManageActivitiesView';
 import ManageExercisesView from './components/ManageExercisesView';
 import SettingsView from './components/SettingsView';
@@ -59,6 +60,12 @@ function App() {
                 openTransactionModal={() => setActiveModal('log-transaction')}
                 openBudgetModal={() => setActiveModal('edit-budgets')}
                 openIncomeModal={() => setActiveModal('edit-income')}
+            />
+        )}
+
+        {activeView === 'view-analytics' && (
+            <AnalyticsView 
+                appState={appState} 
             />
         )}
 

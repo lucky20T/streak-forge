@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import TopHeader from './TopHeader';
 
-export default function SettingsView({ appState, updateState }) {
+export default function SettingsView({ appState, updateState, user, syncStatus, onSignIn, onLogout, onSyncNow }) {
     const fileInputRef = useRef(null);
     const [importError, setImportError] = useState('');
 
@@ -58,10 +58,40 @@ export default function SettingsView({ appState, updateState }) {
 
     return (
         <div className="app-container">
-            <TopHeader title="Settings" />
+            <TopHeader title="Settings" user={user} syncStatus={syncStatus} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Manage your data and application preferences.</p>
 
             <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px' }}>
+                {/* Cloud Sync Card */}
+                <section className="panel" style={{ padding: '2rem' }}>
+                    <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>☁️ Cloud Sync & Account</h2>
+                    {user ? (
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                                {user.photoURL && <img src={user.photoURL} alt="avatar" style={{ width: '48px', height: '48px', borderRadius: '50%' }} />}
+                                <div>
+                                    <div style={{ fontWeight: 600 }}>{user.displayName}</div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{user.email}</div>
+                                </div>
+                                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
+                                    <button className="btn outline" onClick={onSyncNow}>Sync Now</button>
+                                    <button className="btn large" style={{ background: '#fef2f2', color: 'var(--danger)', border: '1px solid #fecaca' }} onClick={onLogout}>Sign Out</button>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                Status: <strong style={{ color: syncStatus === 'synced' ? '#10b981' : syncStatus === 'syncing' ? '#f59e0b' : '#9ca3af' }}>{syncStatus}</strong>
+                                {' — '}Your data syncs automatically every 5 minutes and on session end.
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Sign in with Google to enable cloud backup and multi-device sync. Your local data is safe and will be merged.</p>
+                            <button className="btn primary" onClick={onSignIn} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>Sign in with Google</button>
+                        </div>
+                    )}
+                </section>
+
+
                 <section className="panel" style={{ padding: '2rem' }}>
                     <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>Data Management</h2>
                     

@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppState } from './hooks/useAppState';
+import { useAuth } from './hooks/useAuth';
+import { uploadData, downloadData, mergeStates, startPeriodicSync, stopPeriodicSync } from './firebase/syncService';
 import Sidebar from './components/Sidebar';
 import ActivityView from './components/ActivityView';
 import ExerciseView from './components/ExerciseView';
@@ -13,11 +15,18 @@ import LogTransactionModal from './components/LogTransactionModal';
 import EditBudgetsModal from './components/EditBudgetsModal';
 import EditIncomeSourcesModal from './components/EditIncomeSourcesModal';
 
+// Sync status: 'idle' | 'syncing' | 'synced' | 'offline' | 'error'
+
 function App() {
   const { appState, updateState } = useAppState();
+  const { user, authLoading, signInWithGoogle, logout } = useAuth();
   const [activeView, setActiveView] = useState('view-activity');
-  const [activeModal, setActiveModal] = useState(null); // 'log-transaction', 'edit-budgets', 'edit-income'
-  
+  const [activeModal, setActiveModal] = useState(null);
+  const [syncStatus, setSyncStatus] = useState('idle'); // cloud sync status
+
+  const appStateRef = useRef(appState);
+  useEffect(() => { appStateRef.current = appState; }, [appState]);
+
   const [activeFocusId, setActiveFocusId] = useState(() => {
       const saved = localStorage.getItem('streakForge_activeSession');
       if (saved) {
@@ -29,6 +38,54 @@ function App() {
       return null;
   });
 
+  // ── On login: download cloud data and merge ──────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      stopPeriodicSync();
+      setSyncStatus('idle');
+      return;
+    }
+
+    (async () => {
+      setSyncStatus('syncing');
+      try {
+        const cloudData = await downloadData(user.uid);
+        if (cloudData) {
+          const merged = mergeStates(appStateRef.current, cloudData);
+          updateState(merged);
+        }
+        setSyncStatus('synced');
+      } catch {
+        setSyncStatus('error');
+      }
+
+      // Start periodic sync every 5 min
+      startPeriodicSync(user.uid, () => appStateRef.current);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // ── Manual upload helper ─────────────────────────────────────────────────
+  const triggerSync = useCallback(async () => {
+    if (!user) return;
+    setSyncStatus('syncing');
+    try {
+      await uploadData(user.uid, appStateRef.current);
+      setSyncStatus('synced');
+    } catch {
+      setSyncStatus('error');
+    }
+  }, [user]);
+
+  // ── Sync on page unload ──────────────────────────────────────────────────
+  useEffect(() => {
+    const handleUnload = () => {
+      if (user) uploadData(user.uid, appStateRef.current);
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [user]);
+
   return (
     <div className="app-layout">
       <Sidebar activeView={activeView} setActiveView={setActiveView} />
@@ -38,10 +95,13 @@ function App() {
             <ActivityView 
                 appState={appState} 
                 updateState={updateState} 
-                openFocus={(id) => {
-                    setActiveFocusId(id);
-                }}
+                openFocus={(id) => { setActiveFocusId(id); }}
                 openManage={() => setActiveView('view-manage-activities')}
+                user={user}
+                syncStatus={syncStatus}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
         
@@ -86,7 +146,12 @@ function App() {
         {activeView === 'view-settings' && (
             <SettingsView 
                 appState={appState} 
-                updateState={updateState} 
+                updateState={updateState}
+                user={user}
+                syncStatus={syncStatus}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
       </main>
@@ -97,7 +162,11 @@ function App() {
               appState={appState}
               updateState={updateState}
               activityId={activeFocusId}
-              onClose={() => setActiveFocusId(null)}
+              onClose={async () => {
+                  setActiveFocusId(null);
+                  // Sync after session ends
+                  await triggerSync();
+              }}
           />
       )}
 

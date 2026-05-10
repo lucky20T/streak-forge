@@ -3,7 +3,7 @@ import ProductivityChart from './ProductivityChart';
 import TopHeader from './TopHeader';
 import { Code, Languages, Gamepad2, Play, Briefcase, Film, Target } from 'lucide-react';
 
-export default function ActivityView({ appState, updateState, openFocus, openManage }) {
+export default function ActivityView({ appState, updateState, openFocus, openManage, user, syncStatus, onSignIn, onLogout, onSyncNow }) {
     const today = getTodayString();
     
     // Balance Insights Calculations
@@ -129,7 +129,7 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
 
     return (
         <div className="app-container">
-            <TopHeader title="Activity" onManage={openManage} />
+            <TopHeader title="Activity" onManage={openManage} user={user} syncStatus={syncStatus} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
 
             <div className="analytics-row">
                 <section className="panel flex-2" style={{ padding: '2rem' }}>

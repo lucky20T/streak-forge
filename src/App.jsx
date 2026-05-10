@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppState } from './hooks/useAppState';
 import { useAuth } from './hooks/useAuth';
-import { uploadData, downloadData, mergeStates, startPeriodicSync, stopPeriodicSync } from './firebase/syncService';
+import { uploadData, downloadData, mergeStates, startPeriodicSync, stopPeriodicSync, subscribeToData } from './firebase/syncService';
 import Sidebar from './components/Sidebar';
 import ActivityView from './components/ActivityView';
 import ExerciseView from './components/ExerciseView';
@@ -38,7 +38,9 @@ function App() {
       return null;
   });
 
-  // ── On login: download cloud data and merge ──────────────────────────────
+  const isMergingRef = useRef(false);
+
+  // ── Real-time Sync Listener ──────────────────────────────────────────────
   useEffect(() => {
     if (!user) {
       stopPeriodicSync();
@@ -46,22 +48,29 @@ function App() {
       return;
     }
 
-    (async () => {
-      setSyncStatus('syncing');
-      try {
-        const cloudData = await downloadData(user.uid);
-        if (cloudData) {
-          const merged = mergeStates(appStateRef.current, cloudData);
-          updateState(merged);
-        }
-        setSyncStatus('synced');
-      } catch {
-        setSyncStatus('error');
-      }
+    const unsubscribe = subscribeToData(user.uid, (cloudData) => {
+      // If we are currently in the middle of a merge or upload, skip
+      if (isMergingRef.current) return;
 
-      // Start periodic sync every 5 min
-      startPeriodicSync(user.uid, () => appStateRef.current);
-    })();
+      console.log('[Sync] Remote change detected, merging...');
+      const merged = mergeStates(appStateRef.current, cloudData);
+      
+      // Only update if something actually changed (shallow check)
+      if (JSON.stringify(merged) !== JSON.stringify(appStateRef.current)) {
+        isMergingRef.current = true;
+        updateState(merged);
+        setTimeout(() => { isMergingRef.current = false; }, 100);
+      }
+      setSyncStatus('synced');
+    });
+
+    // Start periodic sync every 5 min
+    startPeriodicSync(user.uid, () => appStateRef.current);
+
+    return () => {
+      unsubscribe?.();
+      stopPeriodicSync();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -79,14 +88,13 @@ function App() {
 
   // ── Auto-sync on state changes ──────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
+    if (!user || isMergingRef.current) return;
     
-    // Use a small timeout to debounce rapid changes
     const timeoutId = setTimeout(() => {
       uploadData(user.uid, appStateRef.current)
         .then(() => setSyncStatus('synced'))
         .catch(() => setSyncStatus('error'));
-    }, 5000); // Wait 5s of idle before uploading
+    }, 5000); 
 
     return () => clearTimeout(timeoutId);
   }, [appState, user]);

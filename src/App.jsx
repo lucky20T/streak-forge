@@ -6,6 +6,7 @@ import ExerciseView from './components/ExerciseView';
 import MoneyView from './components/MoneyView';
 import ManageActivitiesView from './components/ManageActivitiesView';
 import ManageExercisesView from './components/ManageExercisesView';
+import SettingsView from './components/SettingsView';
 import FloatingTimer from './components/FloatingTimer';
 import LogTransactionModal from './components/LogTransactionModal';
 import EditBudgetsModal from './components/EditBudgetsModal';
@@ -70,6 +71,13 @@ function App() {
 
         {activeView === 'view-manage-exercises' && (
             <ManageExercisesView 
+                appState={appState} 
+                updateState={updateState} 
+            />
+        )}
+
+        {activeView === 'view-settings' && (
+            <SettingsView 
                 appState={appState} 
                 updateState={updateState} 
             />

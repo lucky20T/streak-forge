@@ -39,7 +39,10 @@ export default function Sidebar({ activeView, setActiveView }) {
                         <span className="nav-icon"><UserCircle size={18} /></span>
                         <span>Profile</span>
                     </button>
-                    <button className="nav-item">
+                    <button 
+                        className={`nav-item ${activeView === 'view-settings' ? 'active' : ''}`}
+                        onClick={() => setActiveView('view-settings')}
+                    >
                         <span className="nav-icon"><Settings size={18} /></span>
                         <span>Settings</span>
                     </button>

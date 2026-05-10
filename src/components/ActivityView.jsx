@@ -1,7 +1,7 @@
 import { getTodayString, formatHoursMins } from '../utils';
 import ProductivityChart from './ProductivityChart';
 import TopHeader from './TopHeader';
-import { Code, Languages, Gamepad2, Play } from 'lucide-react';
+import { Code, Languages, Gamepad2, Play, Briefcase, Film, Target } from 'lucide-react';
 
 export default function ActivityView({ appState, updateState, openFocus, openManage }) {
     const today = getTodayString();
@@ -56,9 +56,46 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
 
     const activeActivities = appState.activities.filter(a => !a.archived);
 
-    // Helper to get an icon based on name
-    const getIconForActivity = (name) => {
-        const lower = name.toLowerCase();
+    // Yesterday Summary Logic
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+    let yestMostFocused = '-';
+    let yestMostFocusedTime = 0;
+    let yestPosStars = 0;
+    let yestNegStars = 0;
+    let hasYesterdayData = false;
+
+    if (appState.records[yesterdayStr]) {
+        Object.entries(appState.records[yesterdayStr]).forEach(([actId, data]) => {
+            if ((data.time || 0) > 0) hasYesterdayData = true;
+            const act = appState.activities.find(a => a.id === actId);
+            if (act) {
+                if ((data.time || 0) > yestMostFocusedTime) {
+                    yestMostFocusedTime = data.time;
+                    yestMostFocused = act.name;
+                }
+
+                const goal = data.goal || 0;
+                if (goal > 0 && (data.time || 0) > goal) {
+                    if (act.type === 'productive') yestPosStars++;
+                    else yestNegStars++;
+                }
+            }
+        });
+    }
+
+    const getIconForActivity = (act) => {
+        const sub = (act.subcategory || '').toLowerCase();
+        if (sub === 'learning') return <Languages size={20} />;
+        if (sub === 'gaming') return <Gamepad2 size={20} />;
+        if (sub === 'work') return <Briefcase size={20} />;
+        if (sub === 'movies + anime') return <Film size={20} />;
+        if (sub === 'focus') return <Target size={20} />;
+        
+        // Fallback
+        const lower = act.name.toLowerCase();
         if (lower.includes('unreal') || lower.includes('code')) return <Code size={20} />;
         if (lower.includes('japanese') || lower.includes('language')) return <Languages size={20} />;
         if (lower.includes('chess') || lower.includes('game')) return <Gamepad2 size={20} />;
@@ -124,10 +161,20 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                     </div>
 
                     <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Most focused activity</p>
-                        <h3 style={{ fontSize: '1rem', marginTop: '0.25rem' }}>
-                            {activeActivities.length > 0 ? activeActivities[0].name : '-'}
-                        </h3>
+                        {!hasYesterdayData ? (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No activity yesterday</p>
+                        ) : (
+                            <>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>Most Focused Yesterday</p>
+                                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>
+                                    {yestMostFocused} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>• {formatHoursMins(yestMostFocusedTime)}</span>
+                                </h3>
+                                <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.85rem', fontWeight: 500 }}>
+                                    <div style={{ color: '#f59e0b' }}>⭐ +{yestPosStars} Productive Stars</div>
+                                    <div style={{ color: '#1f2937' }}>⚫ +{yestNegStars} Negative Stars</div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </section>
 
@@ -176,36 +223,61 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                         const todayData = appState.records[today]?.[act.id] || { time: 0 };
                         const isProd = act.type === 'productive';
                         const badgeClass = isProd ? 'productive' : 'entertainment';
-                        const tagText = isProd ? 'PRODUCTIVE' : 'ENTERTAINMENT';
-                        
                         const activityStreak = calculateActivityStreak(act.id);
                         
-                        // Mock goal calculation for UI
-                        const mockGoal = 14400; // 4 hours in seconds
-                        const progressPercent = Math.min((todayData.time / mockGoal) * 100, 100);
+                        const goal = act.dailyGoal || 0;
+                        const hasGoal = goal > 0;
+                        const progressPercent = hasGoal ? Math.min((todayData.time / goal) * 100, 100) : Math.min((todayData.time / 14400) * 100, 100);
+
+                        let starStatus = null;
+                        if (hasGoal) {
+                            if (isProd && todayData.time > goal) {
+                                starStatus = <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>⭐ Earned Today</span>;
+                            } else if (!isProd && todayData.time > goal) {
+                                starStatus = <span style={{ color: '#1f2937', fontWeight: 600, fontSize: '0.85rem' }}>⚫ Limit Exceeded</span>;
+                            } else if (!isProd) {
+                                starStatus = <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>✓ Within Limit</span>;
+                            } else {
+                                starStatus = <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>In Progress...</span>;
+                            }
+                        } else {
+                            starStatus = <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No Goal Set</span>;
+                        }
 
                         return (
                             <div key={act.id} className="activity-card" onClick={() => openFocus(act.id)}>
-                                <div className="activity-card-header">
+                                <div className="activity-card-header" style={{ marginBottom: '0.75rem' }}>
                                     <div className="activity-icon-box">
-                                        {getIconForActivity(act.name)}
+                                        {getIconForActivity(act)}
                                     </div>
-                                    <span className={`activity-tag ${badgeClass}`}>{tagText}</span>
+                                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                        <span className={`activity-tag ${badgeClass}`}>{act.type.toUpperCase()}</span>
+                                        <span className="activity-tag" style={{ background: '#f3f4f6', color: '#4b5563' }}>{(act.subcategory || '').toUpperCase()}</span>
+                                    </div>
                                 </div>
                                 
-                                <h3 className="activity-title">{act.name}</h3>
+                                <h3 className="activity-title" style={{ marginBottom: '0.25rem' }}>{act.name}</h3>
+                                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {act.description}
+                                </p>
                                 
                                 <div className="activity-progress-info">
                                     <span>Today</span>
-                                    <span><strong style={{color: 'var(--text-primary)'}}>{formatHoursMins(todayData.time)}</strong> / 4h</span>
+                                    <span>
+                                        <strong style={{color: 'var(--text-primary)'}}>{formatHoursMins(todayData.time)}</strong>
+                                        {hasGoal ? ` / ${formatHoursMins(goal)}` : ''}
+                                    </span>
                                 </div>
                                 
                                 <div className="activity-progress-bar">
                                     <div className="time-allocation-fill" style={{ width: `${progressPercent}%`, background: isProd ? 'var(--accent)' : '#ef4444' }}></div>
                                 </div>
                                 
-                                <div className={`activity-streak ${activityStreak === 0 ? 'zero' : ''}`}>
-                                    <span>🔥</span> {activityStreak} days streak
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                                    <div className={`activity-streak ${activityStreak === 0 ? 'zero' : ''}`} style={{ marginTop: 0 }}>
+                                        <span>🔥</span> {activityStreak} days streak
+                                    </div>
+                                    <div>{starStatus}</div>
                                 </div>
                             </div>
                         );

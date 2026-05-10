@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import TopHeader from './TopHeader';
 import CanvasBarChart from './CanvasBarChart';
+import CanvasPieChart from './CanvasPieChart';
 import { formatHoursMins } from '../utils';
 import { 
     getDateRange, 
@@ -13,13 +14,56 @@ import {
 } from '../utils/analyticsEngine';
 
 export default function AnalyticsView({ appState }) {
-    const [filter, setFilter] = useState('Week');
+    const [filter, setFilter] = useState('This Week');
+    const [pieMode, setPieMode] = useState('Date');
 
     const actData = useMemo(() => aggregateActivityData(appState, filter), [appState, filter]);
     const exData = useMemo(() => aggregateExerciseData(appState, filter), [appState, filter]);
     const nutData = useMemo(() => aggregateNutritionData(appState, filter), [appState, filter]);
     const finData = useMemo(() => aggregateFinanceData(appState, filter), [appState, filter]);
     const insights = useMemo(() => generateSmartInsights(actData, exData, nutData, filter), [actData, exData, nutData, filter]);
+
+    const pieChartData = useMemo(() => {
+        const colors = ['#2563eb', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f43f5e', '#84cc16'];
+        let data = [];
+        
+        if (pieMode === 'Date') {
+            const { startDate, endDate } = getDateRange(filter);
+            const dates = getDatesInRange(startDate, endDate);
+            data = dates.map((d, i) => {
+                let sum = 0;
+                if (appState.records[d]) {
+                    Object.values(appState.records[d]).forEach(log => {
+                        sum += (log.time || 0);
+                    });
+                }
+                return {
+                    label: d.slice(5), // MM-DD
+                    value: sum,
+                    color: colors[i % colors.length]
+                };
+            }).filter(d => d.value > 0);
+        } else if (pieMode === 'Activity') {
+            data = Object.entries(actData.activityTotals).map(([label, value], i) => ({
+                label,
+                value,
+                color: colors[i % colors.length]
+            }));
+        } else if (pieMode === 'Type') {
+            data = [
+                { label: 'Productive', value: actData.totalFocus, color: '#2563eb' },
+                { label: 'Entertainment', value: actData.totalEntertainment, color: '#8b5cf6' }
+            ];
+        } else if (pieMode === 'Subcategory') {
+            data = Object.entries(actData.subcategoryTotals).map(([label, value], i) => ({
+                label,
+                value,
+                color: colors[i % colors.length]
+            }));
+        }
+        
+        return data.sort((a, b) => b.value - a.value);
+    }, [actData, pieMode, filter, appState.records]);
 
     // Chart Data Generation
     const chartDataActivity = useMemo(() => {
@@ -63,7 +107,46 @@ export default function AnalyticsView({ appState }) {
         };
     }, [appState, filter]);
 
+    const chartDataStars = useMemo(() => {
+        const { startDate, endDate } = getDateRange(filter);
+        const dates = getDatesInRange(startDate, endDate);
+        
+        let labels = dates.map(d => d.slice(5)); // 'MM-DD'
+        if (filter === 'Week') {
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            labels = dates.map(d => dayNames[new Date(d).getDay()]);
+        }
 
+        const posData = dates.map(d => {
+            let sum = 0;
+            if (appState.records[d]) {
+                Object.entries(appState.records[d]).forEach(([actId, log]) => {
+                    const act = appState.activities.find(a => a.id === actId);
+                    if (act && act.type === 'productive' && log.goal > 0 && (log.time || 0) > log.goal) sum++;
+                });
+            }
+            return sum;
+        });
+
+        const negData = dates.map(d => {
+            let sum = 0;
+            if (appState.records[d]) {
+                Object.entries(appState.records[d]).forEach(([actId, log]) => {
+                    const act = appState.activities.find(a => a.id === actId);
+                    if (act && act.type === 'entertainment' && log.goal > 0 && (log.time || 0) > log.goal) sum++;
+                });
+            }
+            return sum;
+        });
+
+        return {
+            labels,
+            datasets: [
+                { label: 'Positive Stars (⭐)', data: posData, color: '#f59e0b' },
+                { label: 'Negative Stars (⚫)', data: negData, color: '#1f2937' }
+            ]
+        };
+    }, [appState, filter]);
 
     const chartDataIncomeExpense = useMemo(() => {
         const { startDate, endDate } = getDateRange(filter);
@@ -120,13 +203,21 @@ export default function AnalyticsView({ appState }) {
         <div className="app-container">
             <TopHeader title="Analytics" />
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Deep dive into your personal data and trends.</p>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <FilterButton label="Week" />
-                    <FilterButton label="Month" />
-                    <FilterButton label="Year" />
-                    <FilterButton label="All Time" />
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <FilterButton label="Today" />
+                    <FilterButton label="Yesterday" />
+                    <FilterButton label="This Week" />
+                    <FilterButton label="This Month" />
+                    <input 
+                        type="date" 
+                        style={{ padding: '0.4rem 0.75rem', borderRadius: '20px', border: '1px solid var(--border-color)', fontSize: '0.85rem', outline: 'none', background: '#fff', cursor: 'pointer' }}
+                        value={/^\d{4}-\d{2}-\d{2}$/.test(filter) ? filter : ''}
+                        onChange={(e) => {
+                            if (e.target.value) setFilter(e.target.value);
+                        }}
+                    />
                 </div>
             </div>
 
@@ -153,6 +244,13 @@ export default function AnalyticsView({ appState }) {
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f59e0b' }}>🔥 {appState.streak.current} Days</div>
                 </div>
                 <div className="panel stat-card" style={{ padding: '2rem' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>Star Score</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', gap: '1rem' }}>
+                        <span style={{ color: '#f59e0b' }}>⭐ {actData.totalPositiveStars}</span>
+                        <span style={{ color: '#1f2937' }}>⚫ {actData.totalNegativeStars}</span>
+                    </div>
+                </div>
+                <div className="panel stat-card" style={{ padding: '2rem' }}>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>Total Reps</div>
                     <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--success)' }}>{exData.totalReps}</div>
                 </div>
@@ -165,14 +263,27 @@ export default function AnalyticsView({ appState }) {
             <div className="dashboard-grid" style={{ gap: '2rem' }}>
                 {/* Activity Analytics */}
                 <section className="panel" style={{ padding: '2.5rem', gridColumn: 'span 2' }}>
-                    <h2 style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Activity & Focus Trend</h2>
-                    <CanvasBarChart 
-                        data={chartDataActivity} 
-                        height={250} 
-                        isStacked={true} 
-                        type={filter === 'Week' ? 'bar' : 'line'}
-                        minPointWidth={40}
-                    />
+                    {!(/^\d{4}-\d{2}-\d{2}$/.test(filter)) && (
+                        <>
+                            <h2 style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Activity & Focus Trend</h2>
+                            <CanvasBarChart 
+                                data={chartDataActivity} 
+                                height={250} 
+                                isStacked={true} 
+                                type={filter === 'This Week' ? 'bar' : 'line'}
+                                minPointWidth={40}
+                            />
+
+                            <h2 style={{ fontSize: '1.2rem', marginTop: '3rem', marginBottom: '2rem' }}>Productive vs Entertainment Stars</h2>
+                            <CanvasBarChart 
+                                data={chartDataStars} 
+                                height={200} 
+                                isStacked={false} 
+                                type="bar"
+                                minPointWidth={40}
+                            />
+                        </>
+                    )}
                     
                     <div style={{ display: 'flex', gap: '3rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
                         <div>
@@ -190,6 +301,42 @@ export default function AnalyticsView({ appState }) {
                         <div>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Avg Break</div>
                             <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{Math.round(actData.averageBreak / 60)} min</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#f59e0b', marginBottom: '0.25rem' }}>Most Goal Met</div>
+                            <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{actData.mostExceededPositive}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#374151', marginBottom: '0.25rem' }}>Most Limit Break</div>
+                            <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{actData.mostExceededNegative}</div>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
+                        <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Subcategory Breakdown</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                            {Object.keys(actData.subcategoryTotals || {}).length === 0 ? (
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No data logged.</div>
+                            ) : (
+                                Object.entries(actData.subcategoryTotals)
+                                    .sort((a, b) => b[1] - a[1])
+                                    .map(([subcat, time]) => {
+                                        let icon = '🎮';
+                                        if (subcat === 'Learning') icon = '📚';
+                                        if (subcat === 'Work' || subcat === 'Focus') icon = '💼';
+                                        if (subcat === 'Movies + Anime') icon = '🍿';
+                                        
+                                        return (
+                                            <div key={subcat} style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                                <div style={{ fontSize: '1.5rem' }}>{icon}</div>
+                                                <div>
+                                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.1rem' }}>{subcat}</div>
+                                                    <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{formatHoursMins(time)}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                            )}
                         </div>
                     </div>
                 </section>
@@ -246,6 +393,26 @@ export default function AnalyticsView({ appState }) {
                         type={filter === 'Week' ? 'bar' : 'line'}
                         minPointWidth={40}
                     />
+                </section>
+            </div>
+
+            <div className="dashboard-grid" style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+                {/* Time Distribution Pie Chart */}
+                <section className="panel" style={{ padding: '2.5rem', gridColumn: 'span 2' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                        <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Time Distribution</h2>
+                        <select 
+                            value={pieMode} 
+                            onChange={(e) => setPieMode(e.target.value)}
+                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', background: '#fff', cursor: 'pointer' }}
+                        >
+                            <option value="Date">Date Breakdown</option>
+                            <option value="Activity">Activity Breakdown</option>
+                            <option value="Type">Productive vs Entertainment</option>
+                            <option value="Subcategory">Subcategory Breakdown</option>
+                        </select>
+                    </div>
+                    <CanvasPieChart data={pieChartData} height={300} />
                 </section>
             </div>
         </div>

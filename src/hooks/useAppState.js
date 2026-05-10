@@ -59,9 +59,9 @@ export function useAppState() {
         
         let initialData = {
             activities: [
-                { id: "act_1", name: "Unreal Engine", type: "productive", archived: false },
-                { id: "act_2", name: "Japanese", type: "productive", archived: false },
-                { id: "act_3", name: "Chess", type: "productive", archived: false }
+                { id: "act_1", name: "Unreal Engine", type: "productive", subcategory: "Focus", description: "Daily practice in blueprints and C++ for game development.", dailyGoal: 14400, archived: false },
+                { id: "act_2", name: "Japanese", type: "productive", subcategory: "Learning", description: "Kanji study and conversational practice via audio lessons.", dailyGoal: 7200, archived: false },
+                { id: "act_3", name: "Chess", type: "entertainment", subcategory: "Gaming", description: "Puzzles and rapid games to improve tactical vision.", dailyGoal: 3600, archived: false }
             ],
             exercises: [...DEFAULT_EXERCISES],
             records: {}, 
@@ -95,6 +95,28 @@ export function useAppState() {
                 if (initialData.exercises && (!initialData.exercises[0] || !initialData.exercises[0].category)) {
                     initialData.exercises = [...DEFAULT_EXERCISES]; 
                 }
+                
+                // Migrate legacy activities
+                if (initialData.activities) {
+                    initialData.activities = initialData.activities.map(act => {
+                        if (!act.subcategory) {
+                            const isProd = act.type === 'productive';
+                            const lowerName = act.name.toLowerCase();
+                            
+                            let subcat = isProd ? 'Focus' : 'Gaming';
+                            if (lowerName.includes('japan') || lowerName.includes('learn')) subcat = 'Learning';
+                            if (lowerName.includes('work')) subcat = 'Work';
+                            if (lowerName.includes('movie') || lowerName.includes('anime')) subcat = 'Movies + Anime';
+
+                            act.subcategory = subcat;
+                            act.description = act.description || (isProd ? "Deep work session for focused output." : "Leisure activity to relax and unwind.");
+                        }
+                        if (typeof act.dailyGoal === 'undefined') {
+                            act.dailyGoal = 0;
+                        }
+                        return act;
+                    });
+                }
             } catch(e) {
                 console.error("Error parsing localStorage data:", e);
             }
@@ -107,7 +129,12 @@ export function useAppState() {
         
         initialData.activities.forEach(act => {
             if (!initialData.records[today][act.id]) {
-                initialData.records[today][act.id] = { time: 0, break: 0, goal: 0 };
+                initialData.records[today][act.id] = { time: 0, break: 0, goal: act.dailyGoal || 0 };
+            } else {
+                // If it exists but has no goal (e.g. from a past session today before this update), update it
+                if (typeof initialData.records[today][act.id].goal === 'undefined' || initialData.records[today][act.id].goal === 0) {
+                    initialData.records[today][act.id].goal = act.dailyGoal || 0;
+                }
             }
         });
 

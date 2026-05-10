@@ -5,16 +5,28 @@ export function getDateRange(filter) {
     let startDate = new Date(today);
     let endDate = new Date(today);
 
-    if (filter === 'Week') {
+    if (filter === 'Today') {
+        // already set to today
+    } else if (filter === 'Yesterday') {
+        startDate.setDate(startDate.getDate() - 1);
+        endDate = new Date(startDate);
+    } else if (filter === 'This Week' || filter === 'Week') {
         const day = today.getDay();
         const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
         startDate = new Date(today.setDate(diff));
-    } else if (filter === 'Month') {
+    } else if (filter === 'This Month' || filter === 'Month') {
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
     } else if (filter === 'Year') {
         startDate = new Date(today.getFullYear(), 0, 1);
     } else if (filter === 'All Time') {
         startDate = new Date(2000, 0, 1);
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(filter)) {
+        // Specific YYYY-MM-DD date
+        const parts = filter.split('-');
+        const specificDate = new Date(parts[0], parts[1] - 1, parts[2]);
+        specificDate.setHours(0,0,0,0);
+        startDate = new Date(specificDate);
+        endDate = new Date(specificDate);
     }
 
     return { startDate, endDate };
@@ -39,8 +51,13 @@ export function aggregateActivityData(appState, filter) {
     let totalBreaks = 0;
     let breakCount = 0;
     let longestSession = 0;
+    let totalPositiveStars = 0;
+    let totalNegativeStars = 0;
 
     const activityTotals = {};
+    const subcategoryTotals = {};
+    const positiveStarsByAct = {};
+    const negativeStarsByAct = {};
 
     dateRange.forEach(date => {
         if (appState.records[date]) {
@@ -51,6 +68,9 @@ export function aggregateActivityData(appState, filter) {
                     if (act.type === 'entertainment') totalEntertainment += data.time || 0;
 
                     activityTotals[act.name] = (activityTotals[act.name] || 0) + (data.time || 0);
+                    
+                    const subcat = act.subcategory || 'Uncategorized';
+                    subcategoryTotals[subcat] = (subcategoryTotals[subcat] || 0) + (data.time || 0);
 
                     if ((data.time || 0) > longestSession) longestSession = data.time;
 
@@ -59,6 +79,17 @@ export function aggregateActivityData(appState, filter) {
                             totalBreaks += b;
                             breakCount++;
                         });
+                    }
+
+                    const goal = data.goal || 0;
+                    if (goal > 0 && (data.time || 0) > goal) {
+                        if (act.type === 'productive') {
+                            totalPositiveStars++;
+                            positiveStarsByAct[act.name] = (positiveStarsByAct[act.name] || 0) + 1;
+                        } else {
+                            totalNegativeStars++;
+                            negativeStarsByAct[act.name] = (negativeStarsByAct[act.name] || 0) + 1;
+                        }
                     }
                 }
             });
@@ -75,6 +106,18 @@ export function aggregateActivityData(appState, filter) {
         if (time > 0 && time < minTime) { minTime = time; leastFocused = name; }
     });
 
+    let mostExceededPositive = '-';
+    let maxPos = 0;
+    Object.entries(positiveStarsByAct).forEach(([name, count]) => {
+        if (count > maxPos) { maxPos = count; mostExceededPositive = name; }
+    });
+
+    let mostExceededNegative = '-';
+    let maxNeg = 0;
+    Object.entries(negativeStarsByAct).forEach(([name, count]) => {
+        if (count > maxNeg) { maxNeg = count; mostExceededNegative = name; }
+    });
+
     const averageBreak = breakCount > 0 ? totalBreaks / breakCount : 0;
     const dailyAverage = dateRange.length > 0 ? totalFocus / dateRange.length : 0;
 
@@ -88,7 +131,12 @@ export function aggregateActivityData(appState, filter) {
         totalBreaks,
         averageBreak,
         breakCount,
-        activityTotals
+        activityTotals,
+        subcategoryTotals,
+        totalPositiveStars,
+        totalNegativeStars,
+        mostExceededPositive,
+        mostExceededNegative
     };
 }
 
@@ -180,6 +228,14 @@ export function generateSmartInsights(actData, exData, nutData, filter) {
         insights.push(`You maintained strong productivity this ${filter.toLowerCase()}, with focus time significantly exceeding entertainment.`);
     } else if (actData.totalEntertainment > actData.totalFocus) {
         insights.push(`Entertainment time exceeded focus time this ${filter.toLowerCase()}. Try scheduling more dedicated work blocks.`);
+    }
+
+    if (actData.totalPositiveStars > 3) {
+        insights.push(`Incredible consistency! You crushed your productivity goals and earned ${actData.totalPositiveStars} positive stars this ${filter.toLowerCase()}.`);
+    }
+    
+    if (actData.totalNegativeStars > 2) {
+        insights.push(`You exceeded entertainment limits multiple times this ${filter.toLowerCase()}. Consider lowering your limit or stepping away from screens.`);
     }
 
     if (actData.averageBreak > 900) {

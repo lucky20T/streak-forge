@@ -1,6 +1,8 @@
 # ⚡ Streak Forge
 
-![Streak Forge Banner](./public/streak-forge.png)
+<p align="center">
+  <img src="public/streak-forge.png" alt="Streak Forge Banner" width="100%">
+</p>
 
 **Live Demo:** [https://streak-forge-omega.vercel.app/](https://streak-forge-omega.vercel.app/)
 

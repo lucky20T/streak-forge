@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDW381b2rHT-c_7tHkfHB11-yewPHXQrI4",
+    apiKey: "AIzaSyDW38lb2rHT-c_7tHkfHB11-yewPHXQrI4",
     authDomain: "streakforge-5be48.firebaseapp.com",
     projectId: "streakforge-5be48",
     storageBucket: "streakforge-5be48.firebasestorage.app",

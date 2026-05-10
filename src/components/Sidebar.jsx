@@ -36,15 +36,7 @@ export default function Sidebar({ activeView, setActiveView }) {
                         onClick={() => setActiveView('view-analytics')}
                     >
                         <span className="nav-icon"><BarChart2 size={18} /></span>
-                        <span>Analytics</span>
-                    </button>
-                </div>
-                
-                <div className="nav-section">
-                    <div style={{ borderTop: '1px solid var(--border-color)', margin: '1rem 1.5rem', opacity: 0.5 }}></div>
-                    <button className="nav-item">
-                        <span className="nav-icon"><UserCircle size={18} /></span>
-                        <span>Profile</span>
+                        <span>Stats</span>
                     </button>
                     <button 
                         className={`nav-item ${activeView === 'view-settings' ? 'active' : ''}`}

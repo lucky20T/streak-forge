@@ -15,7 +15,8 @@ import {
 
 export default function AnalyticsView({ appState }) {
     const [filter, setFilter] = useState('This Week');
-    const [pieMode, setPieMode] = useState('Date');
+    const [pieMode, setPieMode] = useState('Activity');
+    const [pieFilter, setPieFilter] = useState('This Week');
 
     const actData = useMemo(() => aggregateActivityData(appState, filter), [appState, filter]);
     const exData = useMemo(() => aggregateExerciseData(appState, filter), [appState, filter]);
@@ -23,12 +24,15 @@ export default function AnalyticsView({ appState }) {
     const finData = useMemo(() => aggregateFinanceData(appState, filter), [appState, filter]);
     const insights = useMemo(() => generateSmartInsights(actData, exData, nutData, filter), [actData, exData, nutData, filter]);
 
+    // Pie chart has its own independent aggregation driven by pieFilter
+    const pieActData = useMemo(() => aggregateActivityData(appState, pieFilter), [appState, pieFilter]);
+
     const pieChartData = useMemo(() => {
         const colors = ['#2563eb', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#f43f5e', '#84cc16'];
         let data = [];
         
         if (pieMode === 'Date') {
-            const { startDate, endDate } = getDateRange(filter);
+            const { startDate, endDate } = getDateRange(pieFilter);
             const dates = getDatesInRange(startDate, endDate);
             data = dates.map((d, i) => {
                 let sum = 0;
@@ -44,18 +48,18 @@ export default function AnalyticsView({ appState }) {
                 };
             }).filter(d => d.value > 0);
         } else if (pieMode === 'Activity') {
-            data = Object.entries(actData.activityTotals).map(([label, value], i) => ({
+            data = Object.entries(pieActData.activityTotals).map(([label, value], i) => ({
                 label,
                 value,
                 color: colors[i % colors.length]
             }));
         } else if (pieMode === 'Type') {
             data = [
-                { label: 'Productive', value: actData.totalFocus, color: '#2563eb' },
-                { label: 'Entertainment', value: actData.totalEntertainment, color: '#8b5cf6' }
+                { label: 'Productive', value: pieActData.totalFocus, color: '#2563eb' },
+                { label: 'Entertainment', value: pieActData.totalEntertainment, color: '#8b5cf6' }
             ];
         } else if (pieMode === 'Subcategory') {
-            data = Object.entries(actData.subcategoryTotals).map(([label, value], i) => ({
+            data = Object.entries(pieActData.subcategoryTotals).map(([label, value], i) => ({
                 label,
                 value,
                 color: colors[i % colors.length]
@@ -63,7 +67,7 @@ export default function AnalyticsView({ appState }) {
         }
         
         return data.sort((a, b) => b.value - a.value);
-    }, [actData, pieMode, filter, appState.records]);
+    }, [pieActData, pieMode, pieFilter, appState.records]);
 
     // Chart Data Generation
     const chartDataActivity = useMemo(() => {
@@ -263,27 +267,23 @@ export default function AnalyticsView({ appState }) {
             <div className="dashboard-grid" style={{ gap: '2rem' }}>
                 {/* Activity Analytics */}
                 <section className="panel" style={{ padding: '2.5rem', gridColumn: 'span 2' }}>
-                    {!(/^\d{4}-\d{2}-\d{2}$/.test(filter)) && (
-                        <>
-                            <h2 style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Activity & Focus Trend</h2>
-                            <CanvasBarChart 
-                                data={chartDataActivity} 
-                                height={250} 
-                                isStacked={true} 
-                                type={filter === 'This Week' ? 'bar' : 'line'}
-                                minPointWidth={40}
-                            />
+                    <h2 style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Activity & Focus Trend</h2>
+                    <CanvasBarChart 
+                        data={chartDataActivity} 
+                        height={250} 
+                        isStacked={true} 
+                        type={filter === 'This Week' ? 'bar' : 'line'}
+                        minPointWidth={40}
+                    />
 
-                            <h2 style={{ fontSize: '1.2rem', marginTop: '3rem', marginBottom: '2rem' }}>Productive vs Entertainment Stars</h2>
-                            <CanvasBarChart 
-                                data={chartDataStars} 
-                                height={200} 
-                                isStacked={false} 
-                                type="bar"
-                                minPointWidth={40}
-                            />
-                        </>
-                    )}
+                    <h2 style={{ fontSize: '1.2rem', marginTop: '3rem', marginBottom: '2rem' }}>Productive vs Entertainment Stars</h2>
+                    <CanvasBarChart 
+                        data={chartDataStars} 
+                        height={200} 
+                        isStacked={false} 
+                        type="bar"
+                        minPointWidth={40}
+                    />
                     
                     <div style={{ display: 'flex', gap: '3rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
                         <div>
@@ -396,22 +396,51 @@ export default function AnalyticsView({ appState }) {
                 </section>
             </div>
 
-            <div className="dashboard-grid" style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+            <div style={{ marginTop: '2rem', marginBottom: '2rem' }}>
                 {/* Time Distribution Pie Chart */}
-                <section className="panel" style={{ padding: '2.5rem', gridColumn: 'span 2' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <section className="panel" style={{ padding: '2.5rem' }}>
+                    {/* Header row: title + mode selector */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                         <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Time Distribution</h2>
                         <select 
                             value={pieMode} 
                             onChange={(e) => setPieMode(e.target.value)}
-                            style={{ padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', background: '#fff', cursor: 'pointer' }}
+                            style={{ padding: '0.45rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)', outline: 'none', background: '#fff', cursor: 'pointer', fontSize: '0.85rem' }}
                         >
-                            <option value="Date">Date Breakdown</option>
                             <option value="Activity">Activity Breakdown</option>
                             <option value="Type">Productive vs Entertainment</option>
                             <option value="Subcategory">Subcategory Breakdown</option>
                         </select>
                     </div>
+
+                    {/* Independent date filter row */}
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '2rem', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginRight: '0.25rem' }}>Range:</span>
+                        {['Today', 'Yesterday', 'This Week', 'This Month'].map(label => (
+                            <button
+                                key={label}
+                                onClick={() => setPieFilter(label)}
+                                style={{
+                                    padding: '0.3rem 0.85rem',
+                                    borderRadius: '20px',
+                                    border: `1px solid ${pieFilter === label ? 'var(--accent)' : 'var(--border-color)'}`,
+                                    background: pieFilter === label ? 'var(--accent)' : '#fff',
+                                    color: pieFilter === label ? '#fff' : 'var(--text-primary)',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                }}
+                            >{label}</button>
+                        ))}
+                        <input 
+                            type="date"
+                            value={/^\d{4}-\d{2}-\d{2}$/.test(pieFilter) ? pieFilter : ''}
+                            onChange={(e) => { if (e.target.value) setPieFilter(e.target.value); }}
+                            style={{ padding: '0.3rem 0.6rem', borderRadius: '20px', border: '1px solid var(--border-color)', fontSize: '0.8rem', outline: 'none', background: '#fff', cursor: 'pointer', marginLeft: 'auto' }}
+                        />
+                    </div>
+
                     <CanvasPieChart data={pieChartData} height={300} />
                 </section>
             </div>

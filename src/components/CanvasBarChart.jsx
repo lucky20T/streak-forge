@@ -1,14 +1,22 @@
 import { useEffect, useRef } from 'react';
 
-export default function CanvasBarChart({ data, height = 200, isStacked = true, showLegend = true }) {
+export default function CanvasBarChart({ data, height = 200, isStacked = true, showLegend = true, type = 'bar', minPointWidth = 40 }) {
     const canvasRef = useRef(null);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas || !data || !data.labels || !data.datasets) return;
-        const ctx = canvas.getContext('2d');
+        const container = containerRef.current;
+        if (!canvas || !container || !data || !data.labels || !data.datasets) return;
         
+        const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
+        
+        // Calculate dynamic width based on data length
+        const requiredWidth = Math.max(container.clientWidth, data.labels.length * minPointWidth);
+        canvas.style.width = `${requiredWidth}px`;
+        canvas.style.height = `${height}px`;
+        
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width * dpr;
         canvas.height = rect.height * dpr;
@@ -21,7 +29,7 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
 
         // Find max value
         let maxVal = 0;
-        if (isStacked) {
+        if (isStacked && type === 'bar') {
             for (let i = 0; i < data.labels.length; i++) {
                 let sum = 0;
                 data.datasets.forEach(ds => sum += (ds.data[i] || 0));
@@ -52,38 +60,84 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
         }
         ctx.stroke();
 
-        const barWidth = (width - 40) / data.labels.length;
+        const pointSpacing = (width - 40) / data.labels.length;
         ctx.font = '500 11px Inter, sans-serif';
         ctx.textAlign = 'center';
 
-        for (let i = 0; i < data.labels.length; i++) {
-            const x = 20 + i * barWidth + (barWidth * 0.1);
-            let currentY = ht - 30;
-            let totalStackHeight = 0;
+        if (type === 'bar') {
+            for (let i = 0; i < data.labels.length; i++) {
+                const x = 20 + i * pointSpacing + (pointSpacing * 0.1);
+                let currentY = ht - 30;
+                let totalStackHeight = 0;
 
+                data.datasets.forEach(ds => {
+                    const val = ds.data[i] || 0;
+                    if (val > 0) {
+                        const h = (val / maxVal) * (ht - 50);
+                        currentY -= h;
+                        ctx.fillStyle = ds.color || '#2563eb';
+                        ctx.fillRect(x, currentY, pointSpacing * 0.8, h);
+                        totalStackHeight += h;
+                    }
+                });
+
+                // If empty, draw subtle gray base
+                if (totalStackHeight === 0) {
+                    ctx.fillStyle = '#e5e7eb';
+                    ctx.fillRect(x, ht - 30 - 10, pointSpacing * 0.8, 10);
+                }
+                
+                // X-axis label
+                ctx.fillStyle = '#6b7280';
+                ctx.fillText(data.labels[i], x + (pointSpacing * 0.4), ht - 10);
+            }
+        } else if (type === 'line') {
+            // Draw x-axis labels first
+            for (let i = 0; i < data.labels.length; i++) {
+                const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
+                ctx.fillStyle = '#6b7280';
+                ctx.fillText(data.labels[i], x, ht - 10);
+            }
+
+            // Draw lines for each dataset
             data.datasets.forEach(ds => {
-                const val = ds.data[i] || 0;
-                if (val > 0) {
-                    const h = (val / maxVal) * (ht - 50);
-                    currentY -= h;
-                    ctx.fillStyle = ds.color || '#2563eb';
-                    ctx.fillRect(x, currentY, barWidth * 0.8, h);
-                    totalStackHeight += h;
+                ctx.beginPath();
+                ctx.strokeStyle = ds.color || '#2563eb';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                for (let i = 0; i < data.labels.length; i++) {
+                    const val = ds.data[i] || 0;
+                    const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
+                    const y = ht - 30 - ((val / maxVal) * (ht - 50));
+
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+
+                // Draw points
+                for (let i = 0; i < data.labels.length; i++) {
+                    const val = ds.data[i] || 0;
+                    const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
+                    const y = ht - 30 - ((val / maxVal) * (ht - 50));
+
+                    ctx.beginPath();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.arc(x, y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = ds.color || '#2563eb';
+                    ctx.stroke();
                 }
             });
-
-            // If empty, draw subtle gray base
-            if (totalStackHeight === 0) {
-                ctx.fillStyle = '#e5e7eb';
-                ctx.fillRect(x, ht - 30 - 10, barWidth * 0.8, 10);
-            }
-            
-            // X-axis label
-            ctx.fillStyle = '#6b7280';
-            ctx.fillText(data.labels[i], x + (barWidth * 0.4), ht - 10);
         }
 
-    }, [data, height, isStacked]);
+    }, [data, height, isStacked, type, minPointWidth]);
 
     return (
         <div style={{ width: '100%' }}>
@@ -97,8 +151,8 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
                     ))}
                 </div>
             )}
-            <div style={{ width: '100%', height: `${height}px` }}>
-                <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }}></canvas>
+            <div ref={containerRef} style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+                <canvas ref={canvasRef} style={{ display: 'block' }}></canvas>
             </div>
         </div>
     );

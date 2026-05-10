@@ -232,6 +232,13 @@ export function aggregateFinanceData(appState, filter) {
 
     const remaining = totalIncome - totalExpenses;
     const spentPercent = totalIncome > 0 ? Math.round((totalExpenses / totalIncome) * 100) : 0;
+    
+    // Also return the raw transactions that fall in this range
+    const filteredTransactions = transactions.filter(t => {
+        const tDate = new Date(t.date);
+        tDate.setHours(0,0,0,0);
+        return tDate >= startDate && tDate <= endDate;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     return {
         totalIncome,
@@ -239,6 +246,7 @@ export function aggregateFinanceData(appState, filter) {
         remaining,
         spentPercent,
         expenseCategories,
-        incomeSources
+        incomeSources,
+        filteredTransactions
     };
 }

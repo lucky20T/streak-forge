@@ -57,33 +57,54 @@ export default function AnalyticsView({ appState }) {
         return {
             labels,
             datasets: [
-                { label: 'Productive (hrs)', data: prodData, color: 'var(--accent)' },
+                { label: 'Productive (hrs)', data: prodData, color: '#2563eb' },
                 { label: 'Entertainment (hrs)', data: entData, color: '#8b5cf6' }
             ]
         };
     }, [appState, filter]);
 
-    const chartDataExercise = useMemo(() => {
-        const labels = Object.keys(exData.categoryTotals);
-        const data = Object.values(exData.categoryTotals);
-        return {
-            labels: labels.length > 0 ? labels : ['No Data'],
-            datasets: [
-                { label: 'Sets per Category', data: data.length > 0 ? data : [0], color: 'var(--success)' }
-            ]
-        };
-    }, [exData]);
 
-    const chartDataFinance = useMemo(() => {
-        const labels = Object.keys(finData.expenseCategories);
-        const data = Object.values(finData.expenseCategories);
+
+    const chartDataIncomeExpense = useMemo(() => {
+        const { startDate, endDate } = getDateRange(filter);
+        const dates = getDatesInRange(startDate, endDate);
+        
+        let labels = dates.map(d => d.slice(5)); // 'MM-DD'
+        if (filter === 'Week') {
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            labels = dates.map(d => dayNames[new Date(d).getDay()]);
+        }
+
+        const incData = dates.map(d => {
+            let sum = 0;
+            finData.filteredTransactions.forEach(tx => {
+                if (tx.type === 'income' && tx.date.startsWith(d)) {
+                    sum += tx.amount;
+                }
+            });
+            return sum;
+        });
+
+        const expData = dates.map(d => {
+            let sum = 0;
+            finData.filteredTransactions.forEach(tx => {
+                if (tx.type === 'expense' && tx.date.startsWith(d)) {
+                    sum += tx.amount;
+                }
+            });
+            return sum;
+        });
+
         return {
-            labels: labels.length > 0 ? labels : ['No Data'],
+            labels,
             datasets: [
-                { label: 'Expenses (₹)', data: data.length > 0 ? data : [0], color: 'var(--danger)' }
+                { label: 'Income (₹)', data: incData, color: '#10b981' },
+                { label: 'Expenses (₹)', data: expData, color: '#ef4444' }
             ]
         };
-    }, [finData]);
+    }, [finData.filteredTransactions, filter]);
+
+
 
     const FilterButton = ({ label }) => (
         <button 
@@ -145,7 +166,13 @@ export default function AnalyticsView({ appState }) {
                 {/* Activity Analytics */}
                 <section className="panel" style={{ padding: '2.5rem', gridColumn: 'span 2' }}>
                     <h2 style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Activity & Focus Trend</h2>
-                    <CanvasBarChart data={chartDataActivity} height={250} isStacked={true} />
+                    <CanvasBarChart 
+                        data={chartDataActivity} 
+                        height={250} 
+                        isStacked={true} 
+                        type={filter === 'Week' ? 'bar' : 'line'}
+                        minPointWidth={40}
+                    />
                     
                     <div style={{ display: 'flex', gap: '3rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
                         <div>
@@ -173,12 +200,8 @@ export default function AnalyticsView({ appState }) {
                     
                     <div style={{ marginBottom: '2rem', flex: 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Workouts</span>
-                            <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{exData.totalWorkouts}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Most Trained</span>
-                            <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{exData.mostTrained}</span>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Reps</span>
+                            <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>{exData.totalReps}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                             <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Healthy Meals</span>
@@ -188,10 +211,11 @@ export default function AnalyticsView({ appState }) {
                             <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Junk Food</span>
                             <span style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--danger)' }}>{nutData.junkCount}</span>
                         </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Water Intake</span>
+                            <span style={{ fontWeight: 600, fontSize: '1.1rem', color: '#3b82f6' }}>{nutData.totalWater} Glasses</span>
+                        </div>
                     </div>
-
-                    <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', marginTop: '1.5rem' }}>Exercise Distribution</h3>
-                    <CanvasBarChart data={chartDataExercise} height={120} isStacked={false} showLegend={false} />
                 </section>
 
                 {/* Finance Analytics */}
@@ -214,8 +238,14 @@ export default function AnalyticsView({ appState }) {
                         <span style={{ fontWeight: 600, fontSize: '1.1rem' }}>₹{finData.remaining.toLocaleString()}</span>
                     </div>
 
-                    <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', marginTop: '1.5rem' }}>Spending by Category</h3>
-                    <CanvasBarChart data={chartDataFinance} height={120} isStacked={false} showLegend={false} />
+                    <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', marginTop: '1.5rem' }}>Income vs Expense Trend</h3>
+                    <CanvasBarChart 
+                        data={chartDataIncomeExpense} 
+                        height={160} 
+                        isStacked={false} 
+                        type={filter === 'Week' ? 'bar' : 'line'}
+                        minPointWidth={40}
+                    />
                 </section>
             </div>
         </div>

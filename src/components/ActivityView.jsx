@@ -65,6 +65,31 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
         return <Play size={20} />;
     };
 
+        const calculateActivityStreak = (actId) => {
+            let streak = 0;
+            const todayDate = new Date();
+            todayDate.setHours(0,0,0,0);
+            
+            if (appState.records[today]?.[actId]?.time > 0) {
+                streak = 1;
+            }
+            
+            let d = new Date(todayDate);
+            d.setDate(d.getDate() - 1);
+            
+            while (true) {
+                const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                if (appState.records[dateStr]?.[actId]?.time > 0) {
+                    if (streak === 0) streak = 1;
+                    else streak++;
+                    d.setDate(d.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        };
+
     return (
         <div className="app-container">
             <TopHeader title="Activity" onManage={openManage} />
@@ -153,6 +178,8 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                         const badgeClass = isProd ? 'productive' : 'entertainment';
                         const tagText = isProd ? 'PRODUCTIVE' : 'ENTERTAINMENT';
                         
+                        const activityStreak = calculateActivityStreak(act.id);
+                        
                         // Mock goal calculation for UI
                         const mockGoal = 14400; // 4 hours in seconds
                         const progressPercent = Math.min((todayData.time / mockGoal) * 100, 100);
@@ -177,8 +204,8 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
                                     <div className="time-allocation-fill" style={{ width: `${progressPercent}%`, background: isProd ? 'var(--accent)' : '#ef4444' }}></div>
                                 </div>
                                 
-                                <div className={`activity-streak ${appState.streak.current === 0 ? 'zero' : ''}`}>
-                                    <span>🔥</span> {appState.streak.current} days streak
+                                <div className={`activity-streak ${activityStreak === 0 ? 'zero' : ''}`}>
+                                    <span>🔥</span> {activityStreak} days streak
                                 </div>
                             </div>
                         );

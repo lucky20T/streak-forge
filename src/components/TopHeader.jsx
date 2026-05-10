@@ -1,4 +1,4 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 export default function TopHeader({ title, onManage }) {
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -16,7 +16,6 @@ export default function TopHeader({ title, onManage }) {
             
             <div className="header-right">
                 <Bell size={20} className="header-icon" />
-                <Search size={20} className="header-icon" />
                 {onManage && (
                     <button className="btn primary" onClick={onManage}>
                         Manage

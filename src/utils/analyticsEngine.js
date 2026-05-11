@@ -11,12 +11,9 @@ export function getDateRange(filter) {
         startDate.setDate(startDate.getDate() - 1);
         endDate = new Date(startDate);
     } else if (filter === 'This Week' || filter === 'Week') {
-        const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
-        startDate = new Date(today.getFullYear(), today.getMonth(), diff);
+        startDate.setDate(today.getDate() - 6);
         startDate.setHours(0, 0, 0, 0);
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
+        endDate = new Date(today);
         endDate.setHours(23, 59, 59, 999);
     } else if (filter === 'This Month' || filter === 'Month') {
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);

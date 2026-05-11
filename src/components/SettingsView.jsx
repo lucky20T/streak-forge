@@ -67,13 +67,13 @@ export default function SettingsView({ appState, updateState, user, syncStatus, 
                     <h2 style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>☁️ Cloud Sync & Account</h2>
                     {user ? (
                         <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                            <div className="settings-profile-row" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                                 {user.photoURL && <img src={user.photoURL} alt="avatar" style={{ width: '48px', height: '48px', borderRadius: '50%' }} />}
                                 <div>
                                     <div style={{ fontWeight: 600 }}>{user.displayName}</div>
                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{user.email}</div>
                                 </div>
-                                <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem' }}>
+                                <div className="settings-actions" style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                     <button className="btn outline" onClick={onSyncNow}>Sync Now</button>
                                     <button className="btn large" style={{ background: '#fef2f2', color: 'var(--danger)', border: '1px solid #fecaca' }} onClick={onLogout}>Sign Out</button>
                                 </div>

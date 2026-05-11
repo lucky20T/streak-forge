@@ -193,6 +193,7 @@ function App() {
 
         {activeView === 'view-manage-activities' && (
             <ManageActivitiesView 
+                onBack={() => setActiveView('view-activity')}
                 appState={appState} 
                 updateState={updateState} 
                 user={user}
@@ -206,6 +207,7 @@ function App() {
 
         {activeView === 'view-manage-exercises' && (
             <ManageExercisesView 
+                onBack={() => setActiveView('view-exercise')}
                 appState={appState} 
                 updateState={updateState} 
                 user={user}

@@ -3,7 +3,7 @@ import TopHeader from './TopHeader';
 import { generateId } from '../utils';
 import { Zap, GripVertical, Pencil, Archive, RotateCcw } from 'lucide-react';
 
-export default function ManageExercisesView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ManageExercisesView({ onBack, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     // Quick Add Form
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState('Push');
@@ -115,14 +115,23 @@ export default function ManageExercisesView({ appState, updateState, user, syncS
 
     return (
         <div className="app-container">
-            <TopHeader title="Manage Exercises" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader 
+                title="Manage Exercises" 
+                onBack={onBack}
+                user={user} 
+                syncStatus={syncStatus} 
+                lastSynced={lastSynced} 
+                onSignIn={onSignIn} 
+                onLogout={onLogout} 
+                onSyncNow={onSyncNow} 
+            />
 
             <div style={{ marginBottom: '3rem' }}>
                 <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.25rem' }}>Manage Exercises</h1>
                 <p style={{ color: 'var(--text-secondary)' }}>Configure your workout routines and movements.</p>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <div className="manage-exercise-layout" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 
                 {/* Left Column: Quick Add */}
                 <div className="panel" style={{ width: '300px', flexShrink: 0, padding: '2rem 1.5rem' }}>

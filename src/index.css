@@ -471,7 +471,7 @@ p { color: var(--text-secondary); font-size: 0.9rem; }
 /* Stats clean */
 .stats-grid-clean {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 1rem;
 }
 

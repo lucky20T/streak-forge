@@ -519,18 +519,31 @@ export default function DeepActivityStats({ appState }) {
                     color: #1e293b;
                 }
 
-                @media (max-width: 640px) {
-                    .deep-stats-header {
-                        flex-direction: column;
-                        align-items: stretch;
-                    }
-                    .header-controls {
-                        flex-direction: column;
-                        align-items: stretch;
-                    }
-                    .insights-footer {
-                        grid-template-columns: 1fr;
-                    }
+                @media (max-width: 768px) {
+                    .deep-stats-panel { padding: 1.5rem !important; }
+                    .deep-stats-header h2 { font-size: 1.4rem; }
+                    .header-controls { width: 100%; }
+                    .activity-dropdown-container { min-width: 100%; }
+                    .range-filters { width: 100%; justify-content: space-between; }
+                    .filter-btn { flex: 1; padding: 0.5rem 0.5rem; font-size: 0.8rem; }
+                    .deep-stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+                    .deep-stat-card { padding: 1rem; gap: 0.75rem; border-radius: 16px; }
+                    .card-icon { width: 36px; height: 36px; border-radius: 10px; }
+                    .card-icon svg { width: 18px; height: 18px; }
+                    .card-data .value { font-size: 1.1rem; }
+                    .card-data .label { font-size: 0.6rem; }
+                    .insights-footer { grid-template-columns: 1fr; gap: 1rem; }
+                    .chart-container-large { padding: 1rem; margin-bottom: 1.5rem; }
+                    .chart-info-overlay { gap: 0.75rem; }
+                    .activity-icon-large { width: 36px; height: 36px; border-radius: 10px; }
+                    .activity-icon-large svg { width: 20px; height: 20px; }
+                    .chart-info-overlay h3 { font-size: 1rem; }
+                }
+
+                @media (max-width: 480px) {
+                    .deep-stats-grid { grid-template-columns: 1fr; }
+                    .deep-stat-card { gap: 1rem; }
+                    .deep-stats-header h2 { font-size: 1.25rem; }
                 }
             `}</style>
         </section>

@@ -1,4 +1,4 @@
-import { Bell, Cloud, CloudOff, RefreshCw, LogOut } from 'lucide-react';
+import { Bell, Cloud, CloudOff, RefreshCw, LogOut, ArrowLeft } from 'lucide-react';
 
 const SYNC_LABEL = {
     idle:    { text: 'Cloud Sync Disabled', color: '#9ca3af' },
@@ -8,7 +8,7 @@ const SYNC_LABEL = {
     offline: { text: 'Offline Mode',        color: '#9ca3af' },
 };
 
-export default function TopHeader({ title, onManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function TopHeader({ title, onManage, onBack, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     const timeStr  = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const sync     = SYNC_LABEL[syncStatus] || SYNC_LABEL.idle;
@@ -23,7 +23,15 @@ export default function TopHeader({ title, onManage, user, syncStatus, lastSynce
 
     return (
         <header className="top-header" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div className="header-left" style={{ width: '200px' }}>
+            <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {onBack && (
+                    <button 
+                        onClick={onBack}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', padding: '0.25rem' }}
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                )}
                 <h1 style={{ fontSize: '1.25rem' }}>{title}</h1>
             </div>
             

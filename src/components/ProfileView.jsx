@@ -903,6 +903,50 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     .hero-stats { gap: 1.5rem; }
                     .form-row { flex-direction: column; gap: 1rem; }
                     .modal-content.profile-modal { padding: 1.5rem; }
+                @media (max-width: 900px) {
+                    .profile-hero {
+                        flex-direction: column;
+                        padding: 2rem;
+                        gap: 2rem;
+                        text-align: center;
+                    }
+                    .hero-content {
+                        flex-direction: column;
+                        gap: 1rem;
+                    }
+                    .hero-stats {
+                        width: 100%;
+                        justify-content: space-around;
+                        gap: 1rem;
+                    }
+                    .stat-val { font-size: 1.5rem; }
+                    .hero-text h1 { font-size: 1.75rem; }
+                    
+                    .skills-grid, .goals-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .profile-nav {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                    .profile-nav-item {
+                        padding: 0.6rem 1rem;
+                        font-size: 0.85rem;
+                        flex: 1;
+                        justify-content: center;
+                    }
+                    .modal-content.profile-modal {
+                        padding: 1.5rem;
+                        border-radius: 20px;
+                    }
+                    .modal-header h3 { font-size: 1.25rem; }
+                    .form-row { flex-direction: column; gap: 0; }
+                }
+
+                @media (max-width: 480px) {
+                    .profile-hero { border-radius: 16px; }
+                    .stat-label { font-size: 0.7rem; }
+                    .hero-stats { gap: 0.5rem; }
                 }
             `}</style>
         </div>

@@ -4,7 +4,7 @@ import TopHeader from './TopHeader';
 import LogMealModal from './LogMealModal';
 import LogExerciseModal from './LogExerciseModal';
 
-export default function ExerciseView({ appState, updateState, openManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ExerciseView({ onProfile, onSettings, appState, updateState, openManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const [isMealModalOpen, setIsMealModalOpen] = useState(false);
     const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
     const [workoutComplete, setWorkoutComplete] = useState(false);
@@ -56,7 +56,18 @@ export default function ExerciseView({ appState, updateState, openManage, user, 
 
     return (
         <div className="app-container">
-            <TopHeader title="Exercise & Nutrition" onManage={openManage} user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader 
+                title="Exercise & Nutrition" 
+                onManage={openManage} 
+                onProfile={onProfile}
+                onSettings={onSettings}
+                user={user} 
+                syncStatus={syncStatus} 
+                lastSynced={lastSynced} 
+                onSignIn={onSignIn} 
+                onLogout={onLogout} 
+                onSyncNow={onSyncNow} 
+            />
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Track your physical performance and dietary intake.</p>
 
             <div className="dashboard-grid">

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import TopHeader from './TopHeader';
 
-export default function SettingsView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function SettingsView({ onProfile, onSettings, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const fileInputRef = useRef(null);
     const [importError, setImportError] = useState('');
 
@@ -58,7 +58,17 @@ export default function SettingsView({ appState, updateState, user, syncStatus, 
 
     return (
         <div className="app-container">
-            <TopHeader title="Settings" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader 
+                title="Settings" 
+                onProfile={onProfile}
+                onSettings={onSettings}
+                user={user} 
+                syncStatus={syncStatus} 
+                lastSynced={lastSynced} 
+                onSignIn={onSignIn} 
+                onLogout={onLogout} 
+                onSyncNow={onSyncNow} 
+            />
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Manage your data and application preferences.</p>
 
             <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px' }}>

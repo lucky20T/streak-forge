@@ -14,7 +14,7 @@ import {
     generateSmartInsights 
 } from '../utils/analyticsEngine';
 
-export default function AnalyticsView({ appState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function AnalyticsView({ onProfile, onSettings, appState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const [filter, setFilter] = useState('This Week');
     const [pieMode, setPieMode] = useState('Activity');
     const [pieFilter, setPieFilter] = useState('This Week');
@@ -206,7 +206,17 @@ export default function AnalyticsView({ appState, user, syncStatus, lastSynced, 
 
     return (
         <div className="app-container">
-            <TopHeader title="Analytics" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader 
+                title="Analytics" 
+                onProfile={onProfile}
+                onSettings={onSettings}
+                user={user} 
+                syncStatus={syncStatus} 
+                lastSynced={lastSynced} 
+                onSignIn={onSignIn} 
+                onLogout={onLogout} 
+                onSyncNow={onSyncNow} 
+            />
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Deep dive into your personal data and trends.</p>

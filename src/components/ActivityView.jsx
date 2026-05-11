@@ -3,7 +3,7 @@ import ProductivityChart from './ProductivityChart';
 import TopHeader from './TopHeader';
 import { Code, Languages, Gamepad2, Play, Briefcase, Film, Target } from 'lucide-react';
 
-export default function ActivityView({ appState, updateState, openFocus, openManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ActivityView({ onProfile, onSettings, appState, updateState, openFocus, openManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const today = getTodayString();
     
     // Balance Insights Calculations
@@ -129,7 +129,18 @@ export default function ActivityView({ appState, updateState, openFocus, openMan
 
     return (
         <div className="app-container">
-            <TopHeader title="Activity" onManage={openManage} user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader 
+                title="Activity" 
+                onManage={openManage} 
+                onProfile={onProfile}
+                onSettings={onSettings}
+                user={user} 
+                syncStatus={syncStatus} 
+                lastSynced={lastSynced} 
+                onSignIn={onSignIn} 
+                onLogout={onLogout} 
+                onSyncNow={onSyncNow} 
+            />
 
             {syncStatus === 'error' && (
                 <div style={{ background: '#fef2f2', color: '#b91c1c', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.85rem', border: '1px solid #fecaca', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

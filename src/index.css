@@ -624,7 +624,19 @@ p { color: var(--text-secondary); font-size: 0.9rem; }
     margin-bottom: 1rem;
 }
 
+.mobile-only {
+    display: none !important;
+}
+
 @media (max-width: 768px) {
+    .mobile-only {
+        display: flex !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
     .app-layout {
         flex-direction: column;
         overflow: hidden;

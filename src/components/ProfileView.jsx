@@ -21,7 +21,7 @@ import {
 import { getSkillLevelInfo, formatHoursMins, generateId } from '../utils';
 import TopHeader from './TopHeader';
 
-export default function ProfileView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ProfileView({ onProfile, onSettings, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const [activeTab, setActiveTab] = useState('skills'); // 'skills' | 'goals'
     
     // Modal states
@@ -351,9 +351,11 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
     };
 
     return (
-        <div className="app-container profile-container">
+        <div className="app-container" style={{ paddingBottom: '5rem' }}>
             <TopHeader 
                 title="Profile & Progression" 
+                onProfile={onProfile}
+                onSettings={onSettings}
                 user={user} 
                 syncStatus={syncStatus} 
                 lastSynced={lastSynced} 

@@ -3,7 +3,7 @@ import TopHeader from './TopHeader';
 import { Code, Languages, Gamepad2, Play, Pencil, Archive, RotateCcw, Box, Briefcase, Film, Target } from 'lucide-react';
 import { generateId } from '../utils';
 
-export default function ManageActivitiesView({ onBack, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ManageActivitiesView({ onProfile, onSettings, onBack, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     // Add mode
     const [isAdding, setIsAdding] = useState(false);
     const [newName, setNewName] = useState('');
@@ -252,6 +252,8 @@ export default function ManageActivitiesView({ onBack, appState, updateState, us
             <TopHeader 
                 title="Manage Activities" 
                 onBack={onBack}
+                onProfile={onProfile}
+                onSettings={onSettings}
                 user={user} 
                 syncStatus={syncStatus} 
                 lastSynced={lastSynced} 

@@ -1,4 +1,4 @@
-import { Bell, Cloud, CloudOff, RefreshCw, LogOut, ArrowLeft } from 'lucide-react';
+import { Bell, Cloud, CloudOff, RefreshCw, LogOut, ArrowLeft, User as UserIcon, Settings } from 'lucide-react';
 
 const SYNC_LABEL = {
     idle:    { text: 'Cloud Sync Disabled', color: '#9ca3af' },
@@ -8,7 +8,7 @@ const SYNC_LABEL = {
     offline: { text: 'Offline Mode',        color: '#9ca3af' },
 };
 
-export default function TopHeader({ title, onManage, onBack, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function TopHeader({ title, onManage, onBack, onProfile, onSettings, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     const timeStr  = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const sync     = SYNC_LABEL[syncStatus] || SYNC_LABEL.idle;
@@ -22,7 +22,7 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
     }
 
     return (
-        <header className="top-header" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+        <header className="top-header" style={{ flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
             <div className="header-left" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 {onBack && (
                     <button 
@@ -39,7 +39,26 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
                 {todayStr} • {timeStr}
             </div>
             
-            <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {/* Icons Section */}
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div className="mobile-only" style={{ gap: '0.75rem', alignItems: 'center' }}>
+                        <UserIcon 
+                            size={20} 
+                            className="header-icon" 
+                            style={{ cursor: 'pointer', color: title === 'Profile & Progression' ? 'var(--accent)' : 'inherit' }} 
+                            onClick={onProfile}
+                        />
+                        <Settings 
+                            size={20} 
+                            className="header-icon" 
+                            style={{ cursor: 'pointer', color: title === 'Settings' ? 'var(--accent)' : 'inherit' }} 
+                            onClick={onSettings}
+                        />
+                    </div>
+                    <Bell size={20} className="header-icon" />
+                </div>
+
                 {/* Sync status pill */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', fontWeight: 500, color: sync.color }}>
                     {syncStatus === 'synced'  && <Cloud size={13} />}
@@ -50,8 +69,7 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
                 </div>
 
                 {user ? (
-                    <>
-                        {/* Sync now button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         {onSyncNow && (
                             <button
                                 onClick={onSyncNow}
@@ -62,7 +80,6 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
                             </button>
                         )}
 
-                        {/* Avatar + name */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             {user.photoURL && (
                                 <img
@@ -71,17 +88,13 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
                                     style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-color)' }}
                                 />
                             )}
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {user.displayName?.split(' ')[0] || 'User'}
-                            </span>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {user.email}
-                            </span>
-                        </div>
+                            <div className="desktop-only" style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {user.displayName?.split(' ')[0] || 'User'}
+                                </span>
+                            </div>
                         </div>
 
-                        {/* Logout */}
                         <button
                             onClick={onLogout}
                             title="Sign out"
@@ -89,10 +102,9 @@ export default function TopHeader({ title, onManage, onBack, user, syncStatus, l
                         >
                             <LogOut size={16} />
                         </button>
-                    </>
+                    </div>
                 ) : null}
 
-                <Bell size={20} className="header-icon" />
                 {onManage && (
                     <button className="btn primary" onClick={onManage}>
                         Manage

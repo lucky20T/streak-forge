@@ -3,7 +3,7 @@ import TopHeader from './TopHeader';
 import { generateId } from '../utils';
 import { Zap, GripVertical, Pencil, Archive, RotateCcw } from 'lucide-react';
 
-export default function ManageExercisesView({ onBack, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
+export default function ManageExercisesView({ onProfile, onSettings, onBack, appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     // Quick Add Form
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState('Push');
@@ -118,6 +118,8 @@ export default function ManageExercisesView({ onBack, appState, updateState, use
             <TopHeader 
                 title="Manage Exercises" 
                 onBack={onBack}
+                onProfile={onProfile}
+                onSettings={onSettings}
                 user={user} 
                 syncStatus={syncStatus} 
                 lastSynced={lastSynced} 

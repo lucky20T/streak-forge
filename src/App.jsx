@@ -123,6 +123,8 @@ function App() {
       <main className="app-main">
         {activeView === 'view-activity' && (
             <ActivityView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 updateState={updateState} 
                 openFocus={(id) => { setActiveFocusId(id); }}
@@ -138,6 +140,8 @@ function App() {
         
         {activeView === 'view-exercise' && (
             <ExerciseView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 updateState={updateState} 
                 openManage={() => setActiveView('view-manage-exercises')}
@@ -152,6 +156,8 @@ function App() {
 
         {activeView === 'view-money' && (
             <MoneyView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 updateState={updateState} 
                 openTransactionModal={() => setActiveModal('log-transaction')}
@@ -168,6 +174,8 @@ function App() {
 
         {activeView === 'view-analytics' && (
             <AnalyticsView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 user={user}
                 syncStatus={syncStatus}
@@ -180,6 +188,8 @@ function App() {
 
         {activeView === 'view-profile' && (
             <ProfileView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 updateState={updateState}
                 user={user}
@@ -193,6 +203,8 @@ function App() {
 
         {activeView === 'view-manage-activities' && (
             <ManageActivitiesView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 onBack={() => setActiveView('view-activity')}
                 appState={appState} 
                 updateState={updateState} 
@@ -207,6 +219,8 @@ function App() {
 
         {activeView === 'view-manage-exercises' && (
             <ManageExercisesView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 onBack={() => setActiveView('view-exercise')}
                 appState={appState} 
                 updateState={updateState} 
@@ -221,6 +235,8 @@ function App() {
 
         {activeView === 'view-settings' && (
             <SettingsView 
+                onProfile={() => setActiveView('view-profile')}
+                onSettings={() => setActiveView('view-settings')}
                 appState={appState} 
                 lastSynced={lastSynced}
                 user={user}

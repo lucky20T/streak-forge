@@ -48,19 +48,33 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
         // Add 10% padding to top
         maxVal = maxVal * 1.1;
 
-        // Draw horizontal grid lines
+        // Draw horizontal grid lines and Y-axis labels
         ctx.strokeStyle = '#f3f4f6';
         ctx.lineWidth = 1;
-        ctx.beginPath();
         const numLines = 4;
-        for(let i=0; i<=numLines; i++) {
-            const y = 20 + (i * (ht - 50) / numLines);
-            ctx.moveTo(20, y);
-            ctx.lineTo(width - 20, y);
-        }
-        ctx.stroke();
+        const chartLeft = 40;
+        const chartRight = width - 20;
+        const chartTop = 20;
+        const chartBottom = ht - 30;
+        const chartHeight = chartBottom - chartTop;
 
-        const pointSpacing = (width - 40) / data.labels.length;
+        ctx.font = '500 10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for(let i=0; i<=numLines; i++) {
+            const y = chartTop + (i * chartHeight / numLines);
+            ctx.beginPath();
+            ctx.moveTo(chartLeft, y);
+            ctx.lineTo(chartRight, y);
+            ctx.stroke();
+            
+            const val = maxVal - (i * maxVal / numLines);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText(`${Math.round(val)}h`, chartLeft - 8, y);
+        }
+
+        const pointSpacing = (chartRight - chartLeft) / data.labels.length;
         const maxBarWidth = 60;
         const actualBarWidth = Math.min(pointSpacing * 0.8, maxBarWidth);
         
@@ -69,15 +83,14 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
 
         if (type === 'bar') {
             for (let i = 0; i < data.labels.length; i++) {
-                // Center the bar within the pointSpacing slot
-                const x = 20 + i * pointSpacing + (pointSpacing - actualBarWidth) / 2;
-                let currentY = ht - 30;
+                const x = chartLeft + i * pointSpacing + (pointSpacing - actualBarWidth) / 2;
+                let currentY = chartBottom;
                 let totalStackHeight = 0;
 
                 data.datasets.forEach(ds => {
                     const val = ds.data[i] || 0;
                     if (val > 0) {
-                        const h = (val / maxVal) * (ht - 50);
+                        const h = (val / maxVal) * chartHeight;
                         currentY -= h;
                         ctx.fillStyle = ds.color || '#2563eb';
                         ctx.fillRect(x, currentY, actualBarWidth, h);
@@ -85,25 +98,21 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
                     }
                 });
 
-                // If empty, draw subtle gray base
                 if (totalStackHeight === 0) {
                     ctx.fillStyle = '#e5e7eb';
-                    ctx.fillRect(x, ht - 30 - 10, actualBarWidth, 10);
+                    ctx.fillRect(x, chartBottom - 10, actualBarWidth, 10);
                 }
                 
-                // X-axis label
                 ctx.fillStyle = '#6b7280';
                 ctx.fillText(data.labels[i], x + (actualBarWidth / 2), ht - 10);
             }
         } else if (type === 'line') {
-            // Draw x-axis labels first
             for (let i = 0; i < data.labels.length; i++) {
-                const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
+                const x = chartLeft + i * pointSpacing + (pointSpacing * 0.5);
                 ctx.fillStyle = '#6b7280';
                 ctx.fillText(data.labels[i], x, ht - 10);
             }
 
-            // Draw lines for each dataset
             data.datasets.forEach(ds => {
                 ctx.beginPath();
                 ctx.strokeStyle = ds.color || '#2563eb';
@@ -113,8 +122,8 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
 
                 for (let i = 0; i < data.labels.length; i++) {
                     const val = ds.data[i] || 0;
-                    const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
-                    const y = ht - 30 - ((val / maxVal) * (ht - 50));
+                    const x = chartLeft + i * pointSpacing + (pointSpacing * 0.5);
+                    const y = chartBottom - ((val / maxVal) * chartHeight);
 
                     if (i === 0) {
                         ctx.moveTo(x, y);
@@ -124,11 +133,10 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
                 }
                 ctx.stroke();
 
-                // Draw points
                 for (let i = 0; i < data.labels.length; i++) {
                     const val = ds.data[i] || 0;
-                    const x = 20 + i * pointSpacing + (pointSpacing * 0.5);
-                    const y = ht - 30 - ((val / maxVal) * (ht - 50));
+                    const x = chartLeft + i * pointSpacing + (pointSpacing * 0.5);
+                    const y = chartBottom - ((val / maxVal) * chartHeight);
 
                     ctx.beginPath();
                     ctx.fillStyle = '#ffffff';

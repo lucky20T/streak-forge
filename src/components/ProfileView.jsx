@@ -16,7 +16,11 @@ import {
     Pencil,
     CheckCircle2,
     Circle,
-    Activity as ActivityIcon
+    Activity as ActivityIcon,
+    Rocket,
+    Calendar,
+    Flag,
+    Mountain
 } from 'lucide-react';
 import { getSkillLevelInfo, formatHoursMins, generateId } from '../utils';
 import TopHeader from './TopHeader';
@@ -288,25 +292,31 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
     const GoalCard = ({ goal }) => {
         const isLongTerm = goal.type === 'long-term';
         const isCompleted = goal.completed;
+        const Icon = isLongTerm ? Mountain : Rocket;
         
         return (
-            <div className={`profile-card goal-card ${goal.type} ${isCompleted ? 'completed' : ''}`}>
+            <div className={`profile-card goal-card-enhanced ${goal.type} ${isCompleted ? 'completed' : ''}`}>
+                <div className="goal-card-bg-icon">
+                    <Icon size={120} />
+                </div>
+                
                 <div className="goal-header">
                     <div className="goal-type-info">
-                        <div className={`goal-type-tag ${goal.type}`}>
+                        <div className={`goal-type-tag-enhanced ${goal.type}`}>
+                            <Icon size={12} style={{ marginRight: '4px' }} />
                             {goal.type === 'long-term' ? 'Long Term' : 'Short Term'}
                         </div>
-                        {isCompleted && <span className="completed-badge"><CheckCircle2 size={12} /> Completed</span>}
+                        {isCompleted && <span className="completed-badge-enhanced"><CheckCircle2 size={12} /> Success</span>}
                     </div>
                     <div className="card-actions">
-                        <button className="icon-btn" onClick={() => handleToggleGoal(goal.id)}>
-                            {isCompleted ? <CheckCircle2 size={14} color="var(--success)" /> : <Circle size={14} />}
+                        <button className="icon-btn-ghost" onClick={() => handleToggleGoal(goal.id)} title={isCompleted ? "Re-open goal" : "Complete goal"}>
+                            {isCompleted ? <CheckCircle2 size={16} color="var(--success)" /> : <Circle size={16} />}
                         </button>
-                        <button className="icon-btn" onClick={() => { setEditingGoal(goal); setIsGoalModalOpen(true); }}>
-                            <Pencil size={14} />
+                        <button className="icon-btn-ghost" onClick={() => { setEditingGoal(goal); setIsGoalModalOpen(true); }}>
+                            <Pencil size={16} />
                         </button>
-                        <button className="icon-btn delete-btn" onClick={() => handleDeleteGoal(goal.id)}>
-                            <Trash2 size={14} />
+                        <button className="icon-btn-ghost delete-btn" onClick={() => handleDeleteGoal(goal.id)}>
+                            <Trash2 size={16} />
                         </button>
                     </div>
                 </div>
@@ -317,15 +327,17 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 {goal.targetHours > 0 && (
                     <div className="goal-progress-section">
                         <div className="progress-info">
-                            <span>{Math.floor(goal.currentHours)}h / {goal.targetHours}h</span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Clock size={12} /> {Math.floor(goal.currentHours)}h / {goal.targetHours}h
+                            </span>
                             <span>{Math.round(goal.progress)}%</span>
                         </div>
-                        <div className="progress-bar-container">
+                        <div className="progress-bar-container-enhanced">
                             <div 
-                                className="progress-bar-fill" 
+                                className="progress-bar-fill-enhanced" 
                                 style={{ 
                                     width: `${goal.progress}%`,
-                                    backgroundColor: isCompleted ? 'var(--success)' : (isLongTerm ? '#8b5cf6' : 'var(--accent)')
+                                    background: isCompleted ? 'var(--success)' : (isLongTerm ? 'linear-gradient(90deg, #8b5cf6, #d946ef)' : 'linear-gradient(90deg, #3b82f6, #06b6d4)')
                                 }}
                             ></div>
                         </div>
@@ -334,14 +346,14 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
 
                 <div className="goal-links-row">
                     {goal.skillId && (
-                        <div className="goal-link">
-                            <Zap size={12} />
+                        <div className="goal-link-tag">
+                            <Zap size={10} />
                             <span>{skills.find(s => s.id === goal.skillId)?.name}</span>
                         </div>
                     )}
                     {goal.activityId && (
-                        <div className="goal-link">
-                            <ActivityIcon size={12} />
+                        <div className="goal-link-tag">
+                            <ActivityIcon size={10} />
                             <span>{activities.find(a => a.id === goal.activityId)?.name}</span>
                         </div>
                     )}
@@ -389,30 +401,33 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 </div>
             </div>
 
-            <div className="profile-nav">
+            <div className="profile-nav-enhanced">
                 <button 
-                    className={`profile-nav-item ${activeTab === 'skills' ? 'active' : ''}`}
+                    className={`profile-nav-item-enhanced ${activeTab === 'skills' ? 'active' : ''}`}
                     onClick={() => setActiveTab('skills')}
                 >
                     <LayoutGrid size={18} />
-                    <span>Skills & Tools</span>
+                    <span>Skills & Mastery</span>
                 </button>
                 <button 
-                    className={`profile-nav-item ${activeTab === 'goals' ? 'active' : ''}`}
+                    className={`profile-nav-item-enhanced ${activeTab === 'goals' ? 'active' : ''}`}
                     onClick={() => setActiveTab('goals')}
                 >
                     <Target size={18} />
-                    <span>Growth Goals</span>
+                    <span>Milestones & Goals</span>
                 </button>
             </div>
 
             <div className="profile-content">
                 {activeTab === 'skills' && (
                     <div className="skills-section">
-                        <div className="section-header">
-                            <h2>Skills Progression</h2>
-                            <button className="btn primary sm" onClick={() => { setEditingSkill(null); setIsSkillModalOpen(true); }}>
-                                <Plus size={16} /> Add Skill
+                        <div className="section-header-enhanced">
+                            <div>
+                                <h2>Skills Progression</h2>
+                                <p>Gain XP and level up your core capabilities.</p>
+                            </div>
+                            <button className="btn primary-enhanced" onClick={() => { setEditingSkill(null); setIsSkillModalOpen(true); }}>
+                                <Plus size={18} /> Add Skill
                             </button>
                         </div>
 
@@ -432,10 +447,13 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
 
                 {activeTab === 'goals' && (
                     <div className="goals-section">
-                        <div className="section-header">
-                            <h2>Life & Growth Goals</h2>
-                            <button className="btn primary sm" onClick={() => { setEditingGoal(null); setIsGoalModalOpen(true); }}>
-                                <Plus size={16} /> New Goal
+                        <div className="section-header-enhanced">
+                            <div>
+                                <h2>Growth Milestones</h2>
+                                <p>Set clear targets for short-term wins and life-long dreams.</p>
+                            </div>
+                            <button className="btn primary-enhanced" onClick={() => { setEditingGoal(null); setIsGoalModalOpen(true); }}>
+                                <Plus size={18} /> Create Goal
                             </button>
                         </div>
 
@@ -454,12 +472,15 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 )}
             </div>
 
-            {/* Modals */}
+            {/* Skill Modal */}
             {isSkillModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content profile-modal">
                         <div className="modal-header">
-                            <h3>{editingSkill ? 'Edit Skill' : 'Add New Skill'}</h3>
+                            <div className="modal-title-with-icon">
+                                <div className="modal-icon-bg"><Zap size={20} color="var(--accent)" /></div>
+                                <h3>{editingSkill ? 'Edit Skill' : 'Add New Skill'}</h3>
+                            </div>
                             <button className="close-btn" onClick={() => setIsSkillModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
@@ -475,7 +496,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                             </div>
                             <div className="form-group">
                                 <label>Link to Activities</label>
-                                <p className="help-text">Time tracked in these activities will contribute to this skill's level.</p>
+                                <p className="help-text">Associate tracking categories with this skill.</p>
                                 <div className="activity-selection-grid">
                                     {activities.filter(a => !a.archived).map(act => (
                                         <div 
@@ -497,266 +518,223 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 </div>
             )}
 
+            {/* Goal Modal */}
             {isGoalModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content profile-modal">
+                    <div className="modal-content profile-modal goal-modal-wide">
                         <div className="modal-header">
-                            <h3>{editingGoal ? 'Edit Goal' : 'Set New Goal'}</h3>
+                            <div className="modal-title-with-icon">
+                                <div className="modal-icon-bg"><Target size={20} color="#8b5cf6" /></div>
+                                <h3>{editingGoal ? 'Edit Milestone' : 'Set New Milestone'}</h3>
+                            </div>
                             <button className="close-btn" onClick={() => setIsGoalModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
+                            
+                            <div className="type-selector-segment">
+                                <button 
+                                    className={`segment-btn ${goalType === 'short-term' ? 'active' : ''}`}
+                                    onClick={() => setGoalType('short-term')}
+                                >
+                                    <Rocket size={16} /> Short Term
+                                </button>
+                                <button 
+                                    className={`segment-btn ${goalType === 'long-term' ? 'active' : ''}`}
+                                    onClick={() => setGoalType('long-term')}
+                                >
+                                    <Mountain size={16} /> Long Term
+                                </button>
+                            </div>
+
                             <div className="form-group">
                                 <label>Goal Title</label>
                                 <input 
                                     type="text" 
-                                    placeholder="e.g. Finish Unreal Course" 
+                                    placeholder={goalType === 'long-term' ? "e.g. Become Senior Unreal Developer" : "e.g. Finish Module 1"} 
                                     value={goalTitle}
                                     onChange={(e) => setGoalTitle(e.target.value)}
+                                    className="large-input"
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Description</label>
+                                <label>Objective Description</label>
                                 <textarea 
-                                    placeholder="What does success look like?" 
+                                    placeholder="Define what success looks like for this milestone..." 
                                     value={goalDesc}
                                     onChange={(e) => setGoalDesc(e.target.value)}
+                                    rows={3}
                                 />
                             </div>
-                            <div className="form-row">
+                            
+                            <div className="form-row-enhanced">
                                 <div className="form-group flex-1">
-                                    <label>Goal Type</label>
-                                    <select value={goalType} onChange={(e) => setGoalType(e.target.value)}>
-                                        <option value="short-term">Short-term</option>
-                                        <option value="long-term">Long-term</option>
-                                    </select>
-                                </div>
-                                <div className="form-group flex-1">
-                                    <label>Target Hours</label>
-                                    <input 
-                                        type="number" 
-                                        value={goalTarget}
-                                        onChange={(e) => setGoalTarget(e.target.value)}
-                                    />
+                                    <label>Target Invested Time (Hours)</label>
+                                    <div className="input-with-icon">
+                                        <Clock size={16} className="input-icon" />
+                                        <input 
+                                            type="number" 
+                                            value={goalTarget}
+                                            onChange={(e) => setGoalTarget(e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <p className="help-text">Set 0 for binary goals (manual complete).</p>
                                 </div>
                             </div>
-                            <div className="form-row">
-                                <div className="form-group flex-1">
-                                    <label>Associated Skill (Optional)</label>
-                                    <select value={goalSkillId} onChange={(e) => { setGoalSkillId(e.target.value); setGoalActivityId(''); }}>
-                                        <option value="">None</option>
-                                        {skills.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="form-group flex-1">
-                                    <label>Associated Activity (Optional)</label>
-                                    <select value={goalActivityId} onChange={(e) => { setGoalActivityId(e.target.value); setGoalSkillId(''); }}>
-                                        <option value="">None</option>
-                                        {activities.filter(a => !a.archived).map(a => (
-                                            <option key={a.id} value={a.id}>{a.name}</option>
-                                        ))}
-                                    </select>
+
+                            <div className="form-group">
+                                <label>Connect Progress To</label>
+                                <div className="link-options-grid">
+                                    <div className="link-option">
+                                        <span className="link-label">Mastery Skill</span>
+                                        <select value={goalSkillId} onChange={(e) => { setGoalSkillId(e.target.value); setGoalActivityId(''); }}>
+                                            <option value="">No Skill Linked</option>
+                                            {skills.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="link-option">
+                                        <span className="link-label">Specific Activity</span>
+                                        <select value={goalActivityId} onChange={(e) => { setGoalActivityId(e.target.value); setGoalSkillId(''); }}>
+                                            <option value="">No Activity Linked</option>
+                                            {activities.filter(a => !a.archived).map(a => (
+                                                <option key={a.id} value={a.id}>{a.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn outline" onClick={() => setIsGoalModalOpen(false)}>Cancel</button>
-                            <button className="btn primary" onClick={handleSaveGoal}>{editingGoal ? 'Save Changes' : 'Create Goal'}</button>
+                            <button className="btn outline" onClick={() => setIsGoalModalOpen(false)}>Discard</button>
+                            <button className="btn primary-enhanced" onClick={handleSaveGoal}>{editingGoal ? 'Update Milestone' : 'Ignite Goal'}</button>
                         </div>
                     </div>
                 </div>
             )}
 
             <style>{`
-                .profile-container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                }
+                .profile-container { max-width: 1200px; margin: 0 auto; }
 
                 .profile-hero {
                     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-                    border-radius: 24px;
-                    padding: 3rem;
-                    color: white;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 2rem;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                    border-radius: 24px; padding: 3rem; color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;
+                    border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
                 }
-
-                .hero-content {
-                    display: flex;
-                    align-items: center;
-                    gap: 2rem;
-                }
-
-                .avatar-placeholder {
-                    width: 100px;
-                    height: 100px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border-radius: 30px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-
-                .hero-icon { color: #fbbf24; }
 
                 .hero-text h1 {
-                    font-size: 2.5rem;
-                    font-weight: 800;
-                    margin-bottom: 0.5rem;
-                    background: linear-gradient(to right, #fff, #94a3b8);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
+                    font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem;
+                    background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                 }
 
-                .hero-text p { color: #94a3b8; font-size: 1.1rem; }
-
-                .hero-stats { display: flex; gap: 3rem; }
-                .hero-stat { display: flex; flex-direction: column; align-items: center; }
-                .stat-val { font-size: 2rem; font-weight: 800; color: white; }
-                .stat-label { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-
-                .profile-nav {
-                    display: flex;
-                    gap: 1rem;
-                    margin-bottom: 2rem;
-                    background: #f1f5f9;
-                    padding: 0.5rem;
-                    border-radius: 16px;
-                    width: fit-content;
+                .profile-nav-enhanced {
+                    display: flex; gap: 1rem; margin-bottom: 2.5rem; background: #f8fafc; padding: 0.6rem; border-radius: 20px; width: fit-content;
+                    border: 1px solid #e2e8f0;
                 }
 
-                .profile-nav-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                    padding: 0.75rem 1.5rem;
-                    border-radius: 12px;
-                    border: none;
-                    background: transparent;
-                    color: #64748b;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.2s;
+                .profile-nav-item-enhanced {
+                    display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1.8rem; border-radius: 14px; border: none; background: transparent;
+                    color: #64748b; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 }
 
-                .profile-nav-item.active {
-                    background: white;
-                    color: var(--accent);
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                .profile-nav-item-enhanced.active {
+                    background: white; color: var(--accent); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); transform: translateY(-1px);
                 }
 
-                .section-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
+                .section-header-enhanced {
+                    display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem;
                 }
 
-                .section-header h2 { font-size: 1.5rem; font-weight: 700; }
+                .section-header-enhanced h2 { font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem; }
+                .section-header-enhanced p { color: #64748b; font-size: 1rem; }
 
-                .skills-grid, .goals-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-                    gap: 1.5rem;
+                .btn.primary-enhanced {
+                    background: #1e293b; color: white; font-weight: 700; padding: 0.8rem 1.5rem; border-radius: 12px;
+                    transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
                 }
+                .btn.primary-enhanced:hover { background: #0f172a; transform: translateY(-2px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
 
                 .profile-card {
-                    background: white;
-                    border-radius: 20px;
-                    padding: 1.5rem;
-                    border: 1px solid #e2e8f0;
-                    transition: transform 0.2s, box-shadow 0.2s;
-                    display: flex;
-                    flex-direction: column;
+                    background: white; border-radius: 24px; padding: 1.8rem; border: 1px solid #e2e8f0; transition: all 0.3s;
+                    display: flex; flex-direction: column; position: relative; overflow: hidden;
                 }
 
-                .profile-card:hover {
-                    transform: translateY(-4px);
-                    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                .skill-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
+
+                /* Enhanced Goal Card */
+                .goal-card-enhanced {
+                    background: white; border-radius: 24px; padding: 2rem; border: 1px solid #e2e8f0; transition: all 0.3s;
+                    display: flex; flex-direction: column; position: relative; overflow: hidden; min-height: 280px;
                 }
 
-                .skill-header, .goal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: flex-start;
-                    margin-bottom: 1rem;
+                .goal-card-bg-icon {
+                    position: absolute; bottom: -20px; right: -20px; opacity: 0.03; transform: rotate(-15deg); color: #000;
+                    pointer-events: none; transition: all 0.5s;
+                }
+                .goal-card-enhanced:hover .goal-card-bg-icon { transform: rotate(0deg) scale(1.1); opacity: 0.06; }
+
+                .goal-card-enhanced.short-term { border-top: 5px solid #3b82f6; }
+                .goal-card-enhanced.long-term { border-top: 5px solid #8b5cf6; }
+                .goal-card-enhanced.completed { border-top-color: var(--success); background: #f0fdf4; }
+
+                .goal-type-tag-enhanced {
+                    display: flex; align-items: center; font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+                    padding: 0.3rem 0.8rem; border-radius: 10px; letter-spacing: 0.5px;
+                }
+                .goal-type-tag-enhanced.short-term { background: #eff6ff; color: #3b82f6; }
+                .goal-type-tag-enhanced.long-term { background: #f5f3ff; color: #8b5cf6; }
+
+                .completed-badge-enhanced {
+                    font-size: 0.75rem; font-weight: 800; color: var(--success); display: flex; align-items: center; gap: 4px;
+                    background: #dcfce7; padding: 0.3rem 0.8rem; border-radius: 10px;
                 }
 
-                .skill-info, .goal-type-info { display: flex; align-items: center; gap: 0.75rem; }
+                .goal-title { font-size: 1.4rem; font-weight: 800; color: #1e293b; margin: 1rem 0 0.5rem 0; line-height: 1.2; }
+                .goal-desc { font-size: 0.95rem; color: #64748b; line-height: 1.6; margin-bottom: 2rem; }
 
-                .skill-level-badge {
-                    padding: 0.25rem 0.75rem;
-                    border-radius: 8px;
-                    color: white;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    text-transform: uppercase;
+                .progress-bar-container-enhanced { height: 10px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin-top: 0.5rem; }
+                .progress-bar-fill-enhanced { height: 100%; border-radius: 10px; transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+                .goal-link-tag {
+                    display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #64748b; font-weight: 700;
+                    background: #f8fafc; padding: 0.3rem 0.7rem; border-radius: 8px; border: 1px solid #e2e8f0;
                 }
 
-                .skill-name, .goal-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
+                .icon-btn-ghost {
+                    background: transparent; border: none; padding: 0.5rem; border-radius: 8px; color: #94a3b8; cursor: pointer; transition: all 0.2s;
+                    display: flex; align-items: center; justify-content: center;
+                }
+                .icon-btn-ghost:hover { background: #f1f5f9; color: #1e293b; }
 
-                .skill-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-                .stat-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #64748b; font-weight: 500; }
+                /* Modal UX */
+                .modal-content.profile-modal { border-radius: 32px; border: none; }
+                .modal-title-with-icon { display: flex; align-items: center; gap: 1rem; }
+                .modal-icon-bg { width: 42px; height: 42px; background: #f8fafc; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; }
 
-                .progress-section, .goal-progress-section { margin-bottom: 1.5rem; }
-                .progress-info { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #475569; }
+                .type-selector-segment {
+                    display: flex; background: #f1f5f9; padding: 0.4rem; border-radius: 16px; margin-bottom: 0.5rem;
+                }
+                .segment-btn {
+                    flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.8rem; border-radius: 12px;
+                    border: none; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; transition: all 0.2s;
+                }
+                .segment-btn.active { background: white; color: #1e293b; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 
-                .progress-bar-container { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
-                .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease-out; }
+                .large-input { font-size: 1.2rem !important; font-weight: 700 !important; border-width: 2px !important; }
+                .large-input:focus { border-color: var(--accent) !important; }
 
-                .next-level-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem; text-align: right; }
+                .input-with-icon { position: relative; }
+                .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+                .input-with-icon input { padding-left: 2.5rem !important; width: 100%; }
 
-                .linked-activities { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; margin-top: auto; }
-                .activity-tag-mini { font-size: 0.7rem; padding: 0.2rem 0.6rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; color: #64748b; font-weight: 600; }
+                .link-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+                .link-option { display: flex; flex-direction: column; gap: 0.4rem; }
+                .link-label { font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
 
-                .goal-card { border-left: 4px solid var(--accent); position: relative; }
-                .goal-card.long-term { border-left-color: #8b5cf6; }
-                .goal-card.completed { border-left-color: var(--success); }
-                .goal-card.completed .goal-title { text-decoration: line-through; opacity: 0.6; }
-
-                .goal-type-tag { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 6px; }
-                .goal-type-tag.short-term { background: #eff6ff; color: #3b82f6; }
-                .goal-type-tag.long-term { background: #f5f3ff; color: #8b5cf6; }
-
-                .completed-badge { font-size: 0.7rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 0.25rem; }
-
-                .goal-desc { font-size: 0.9rem; color: #64748b; line-height: 1.5; margin-bottom: 1.5rem; }
-
-                .goal-links-row { display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; margin-top: auto; }
-                .goal-link { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
-
-                .empty-state { grid-column: 1 / -1; padding: 4rem; text-align: center; background: #f8fafc; border-radius: 24px; border: 2px dashed #e2e8f0; color: #94a3b8; }
-                .empty-state h3 { color: #475569; margin: 1rem 0 0.5rem 0; }
-
-                .card-actions { display: flex; gap: 0.25rem; opacity: 0; transition: opacity 0.2s; }
-                .profile-card:hover .card-actions { opacity: 1; }
-
-                .activity-selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
-                .activity-select-item { padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; text-align: center; cursor: pointer; transition: all 0.2s; }
-                .activity-select-item.selected { background: var(--accent); color: white; border-color: var(--accent); }
-
-                .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-                .modal-content.profile-modal { background: white; width: 90%; max-width: 550px; border-radius: 24px; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-                .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-                .modal-body { display: flex; flexDirection: column; gap: 1.25rem; }
-                .form-group { display: flex; flexDirection: column; gap: 0.5rem; }
-                .form-group label { font-size: 0.85rem; font-weight: 700; color: #1e293b; }
-                .form-group input, .form-group select, .form-group textarea { padding: 0.75rem; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.95rem; }
-                .form-row { display: flex; gap: 1rem; }
-                .help-text { font-size: 0.8rem; color: #64748b; }
-                .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem; }
-
-                @media (max-width: 768px) {
-                    .profile-hero { flex-direction: column; padding: 2rem; gap: 2rem; text-align: center; }
-                    .hero-content { flex-direction: column; gap: 1rem; }
-                    .hero-stats { gap: 1.5rem; }
+                @media (max-width: 600px) {
+                    .link-options-grid { grid-template-columns: 1fr; }
+                    .form-row-enhanced { flex-direction: column; }
                 }
             `}</style>
         </div>

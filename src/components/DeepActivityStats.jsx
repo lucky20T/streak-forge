@@ -42,12 +42,29 @@ export default function DeepActivityStats({ appState }) {
         const weekdayTotals = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
 
         const today = new Date();
-        const startOfWeek = new Date();
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+        today.setHours(0,0,0,0);
+        
+        // Ranges
+        const { startDate: currStart, endDate: currEnd } = getDateRange(range === 'Week' ? 'This Week' : range === 'Month' ? 'This Month' : 'All Time');
+        
+        // Previous period for growth calc
+        let prevStart = new Date(currStart);
+        let prevEnd = new Date(currEnd);
+        if (range === 'Week') {
+            prevStart.setDate(prevStart.getDate() - 7);
+            prevEnd.setDate(prevEnd.getDate() - 7);
+        } else if (range === 'Month') {
+            prevStart.setMonth(prevStart.getMonth() - 1);
+            prevEnd.setMonth(prevEnd.getMonth() - 1);
+        }
 
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+        const currStartStr = currStart.toISOString().split('T')[0];
+        const currEndStr = currEnd.toISOString().split('T')[0];
+        const prevStartStr = prevStart.toISOString().split('T')[0];
+        const prevEndStr = prevEnd.toISOString().split('T')[0];
+
+        let currPeriodSeconds = 0;
+        let prevPeriodSeconds = 0;
 
         Object.entries(records).forEach(([date, dayRecords]) => {
             const log = dayRecords[id];
@@ -56,34 +73,38 @@ export default function DeepActivityStats({ appState }) {
                 totalSeconds += time;
                 dayTotals[date] = time;
 
-                if (date >= startOfWeekStr) weekSeconds += time;
-                if (date >= startOfMonthStr) monthSeconds += time;
-                if (time > longestSeconds) longestSeconds = time;
+                if (date >= currStartStr && date <= currEndStr) currPeriodSeconds += time;
+                if (date >= prevStartStr && date <= prevEndStr) prevPeriodSeconds += time;
                 
+                if (time > longestSeconds) longestSeconds = time;
                 sessionCount++;
                 const dayOfWeek = new Date(date).getDay();
                 weekdayTotals[dayOfWeek] += time;
             }
         });
 
-        const dayEntries = Object.entries(dayTotals).sort((a, b) => a[0].localeCompare(b[0]));
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const mostProductiveDayIndex = weekdayTotals.indexOf(Math.max(...weekdayTotals));
 
-        // Growth trend (last 7 days vs previous 7 days)
-        const last7Days = 0; // Simplified for now
+        // Growth %
+        let growthPercent = 0;
+        if (prevPeriodSeconds > 0) {
+            growthPercent = ((currPeriodSeconds - prevPeriodSeconds) / prevPeriodSeconds) * 100;
+        } else if (currPeriodSeconds > 0) {
+            growthPercent = 100;
+        }
         
         return {
             totalSeconds,
-            weekSeconds,
-            monthSeconds,
+            currPeriodSeconds,
             longestSeconds,
             avgSessionSeconds: sessionCount > 0 ? totalSeconds / sessionCount : 0,
             mostProductiveDay: dayNames[mostProductiveDayIndex],
             dayTotals,
-            sessionCount
+            sessionCount,
+            growthPercent
         };
-    }, [selectedActivity, records]);
+    }, [selectedActivity, records, range]);
 
     const chartData = useMemo(() => {
         if (!selectedActivity || !deepStats) return { labels: [], datasets: [] };
@@ -211,24 +232,28 @@ export default function DeepActivityStats({ appState }) {
                 <div className="deep-stat-card">
                     <div className="card-icon"><Calendar size={20} /></div>
                     <div className="card-data">
-                        <span className="label">This Week</span>
-                        <span className="value">{formatHoursMins(deepStats?.weekSeconds || 0)}</span>
-                    </div>
-                </div>
-                <div className="deep-stat-card">
-                    <div className="card-icon"><Zap size={20} /></div>
-                    <div className="card-data">
-                        <span className="label">This Month</span>
-                        <span className="value">{formatHoursMins(deepStats?.monthSeconds || 0)}</span>
+                        <span className="label">This {range}</span>
+                        <span className="value">{formatHoursMins(deepStats?.currPeriodSeconds || 0)}</span>
                     </div>
                 </div>
                 <div className="deep-stat-card">
                     <div className="card-icon"><TrendingUp size={20} /></div>
                     <div className="card-data">
+                        <span className="label">Growth Trend</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="value">{Math.round(deepStats?.growthPercent || 0)}%</span>
+                            {deepStats?.growthPercent > 0 && <ArrowUpRight size={16} color="#10b981" />}
+                            {deepStats?.growthPercent < 0 && <ArrowUpRight size={16} color="#ef4444" style={{ transform: 'rotate(90deg)' }} />}
+                        </div>
+                    </div>
+                </div>
+                <div className="deep-stat-card">
+                    <div className="card-icon"><Zap size={20} /></div>
+                    <div className="card-data">
                         <span className="label">Daily Average</span>
                         <span className="value">
-                            {deepStats?.totalSeconds > 0 
-                                ? formatHoursMins(deepStats.totalSeconds / (Object.keys(records).length || 1)) 
+                            {deepStats?.currPeriodSeconds > 0 
+                                ? formatHoursMins(deepStats.currPeriodSeconds / (range === 'Week' ? 7 : range === 'Month' ? 30 : (Object.keys(records).length || 1))) 
                                 : '0h 0m'}
                         </span>
                     </div>

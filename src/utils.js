@@ -33,6 +33,31 @@ export function formatHoursMins(totalSeconds) {
     return `${h}h ${m}m`;
 }
 
-export function generateId() {
-    return 'act_' + Math.random().toString(36).substr(2, 9);
+export function generateId(prefix = 'act_') {
+    return prefix + Math.random().toString(36).substr(2, 9);
+}
+
+export const LEVEL_THRESHOLDS = [0, 20, 100, 300, 1000];
+export const LEVEL_LABELS = ['Started', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
+export function getSkillLevelInfo(totalSeconds) {
+    const totalHours = totalSeconds / 3600;
+    let level = 0;
+    for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+        if (totalHours >= LEVEL_THRESHOLDS[i]) {
+            level = i;
+            break;
+        }
+    }
+    
+    const label = LEVEL_LABELS[level];
+    const nextLevelHours = LEVEL_THRESHOLDS[level + 1] || null;
+    const currentLevelThreshold = LEVEL_THRESHOLDS[level];
+    
+    let progress = 100;
+    if (nextLevelHours !== null) {
+        progress = ((totalHours - currentLevelThreshold) / (nextLevelHours - currentLevelThreshold)) * 100;
+    }
+        
+    return { level, label, totalHours, nextLevelHours, progress };
 }

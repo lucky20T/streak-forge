@@ -10,6 +10,7 @@ import AnalyticsView from './components/AnalyticsView';
 import ManageActivitiesView from './components/ManageActivitiesView';
 import ManageExercisesView from './components/ManageExercisesView';
 import SettingsView from './components/SettingsView';
+import ProfileView from './components/ProfileView';
 import FloatingTimer from './components/FloatingTimer';
 import LogTransactionModal from './components/LogTransactionModal';
 import EditBudgetsModal from './components/EditBudgetsModal';
@@ -168,6 +169,19 @@ function App() {
         {activeView === 'view-analytics' && (
             <AnalyticsView 
                 appState={appState} 
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
+            />
+        )}
+
+        {activeView === 'view-profile' && (
+            <ProfileView 
+                appState={appState} 
+                updateState={updateState}
                 user={user}
                 syncStatus={syncStatus}
                 lastSynced={lastSynced}

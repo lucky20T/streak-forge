@@ -32,6 +32,13 @@ export default function Sidebar({ activeView, setActiveView }) {
                         <span>Money</span>
                     </button>
                     <button 
+                        className={`nav-item ${activeView === 'view-profile' ? 'active' : ''}`} 
+                        onClick={() => setActiveView('view-profile')}
+                    >
+                        <span className="nav-icon"><UserCircle size={18} /></span>
+                        <span>Profile</span>
+                    </button>
+                    <button 
                         className={`nav-item ${activeView === 'view-analytics' ? 'active' : ''}`} 
                         onClick={() => setActiveView('view-analytics')}
                     >

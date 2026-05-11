@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Zap, 
     Target, 
@@ -12,28 +12,67 @@ import {
     BarChart,
     Settings,
     LayoutGrid,
-    Trash2
+    Trash2,
+    Pencil,
+    CheckCircle2,
+    Circle,
+    Activity as ActivityIcon
 } from 'lucide-react';
 import { getSkillLevelInfo, formatHoursMins, generateId } from '../utils';
 import TopHeader from './TopHeader';
 
 export default function ProfileView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const [activeTab, setActiveTab] = useState('skills'); // 'skills' | 'goals'
-    const [isAddingSkill, setIsAddingSkill] = useState(false);
-    const [isAddingGoal, setIsAddingGoal] = useState(false);
+    
+    // Modal states
+    const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+    const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+    
+    // Editing states
+    const [editingSkill, setEditingSkill] = useState(null);
+    const [editingGoal, setEditingGoal] = useState(null);
 
-    // Form states for adding skill
-    const [newSkillName, setNewSkillName] = useState('');
+    // Form states
+    const [skillName, setSkillName] = useState('');
     const [selectedActivities, setSelectedActivities] = useState([]);
 
-    // Form states for adding goal
-    const [newGoalTitle, setNewGoalTitle] = useState('');
-    const [newGoalDesc, setNewGoalDesc] = useState('');
-    const [newGoalType, setNewGoalType] = useState('short-term');
-    const [newGoalTarget, setNewGoalTarget] = useState(0);
-    const [newGoalSkillId, setNewGoalSkillId] = useState('');
+    const [goalTitle, setGoalTitle] = useState('');
+    const [goalDesc, setGoalDesc] = useState('');
+    const [goalType, setGoalType] = useState('short-term');
+    const [goalTarget, setGoalTarget] = useState(0);
+    const [goalSkillId, setGoalSkillId] = useState('');
+    const [goalActivityId, setGoalActivityId] = useState('');
 
     const { skills = [], goals = [], activities = [], records = {} } = appState;
+
+    // Helper to sync form with editing object
+    useEffect(() => {
+        if (editingSkill) {
+            setSkillName(editingSkill.name);
+            setSelectedActivities(editingSkill.activities || []);
+        } else {
+            setSkillName('');
+            setSelectedActivities([]);
+        }
+    }, [editingSkill]);
+
+    useEffect(() => {
+        if (editingGoal) {
+            setGoalTitle(editingGoal.title);
+            setGoalDesc(editingGoal.description);
+            setGoalType(editingGoal.type);
+            setGoalTarget(editingGoal.targetHours);
+            setGoalSkillId(editingGoal.skillId || '');
+            setGoalActivityId(editingGoal.activityId || '');
+        } else {
+            setGoalTitle('');
+            setGoalDesc('');
+            setGoalType('short-term');
+            setGoalTarget(0);
+            setGoalSkillId('');
+            setGoalActivityId('');
+        }
+    }, [editingGoal]);
 
     // Calculate total time and weekly growth for each skill
     const skillsWithData = useMemo(() => {
@@ -47,7 +86,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
             let weeklySeconds = 0;
 
             Object.entries(records).forEach(([date, dayRecords]) => {
-                skill.activities.forEach(actId => {
+                (skill.activities || []).forEach(actId => {
                     if (dayRecords[actId]) {
                         const time = dayRecords[actId].time || 0;
                         totalSeconds += time;
@@ -71,13 +110,10 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
         return goals.map(goal => {
             let currentSeconds = 0;
             
-            // If linked to a skill, use the skill's total time
             if (goal.skillId) {
                 const skill = skillsWithData.find(s => s.id === goal.skillId);
                 if (skill) currentSeconds = skill.totalSeconds;
-            } 
-            // If linked directly to an activity, use that activity's total time
-            else if (goal.activityId) {
+            } else if (goal.activityId) {
                 Object.values(records).forEach(dayRecords => {
                     if (dayRecords[goal.activityId]) {
                         currentSeconds += dayRecords[goal.activityId].time || 0;
@@ -87,57 +123,87 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
 
             const currentHours = currentSeconds / 3600;
             const progress = goal.targetHours > 0 ? Math.min(100, (currentHours / goal.targetHours) * 100) : 100;
+            const isAutoCompleted = goal.targetHours > 0 && currentHours >= goal.targetHours;
 
             return {
                 ...goal,
                 currentHours,
-                progress
+                progress,
+                completed: goal.completed || isAutoCompleted
             };
         });
     }, [goals, skillsWithData, records]);
 
-    const handleAddSkill = () => {
-        if (!newSkillName.trim()) return;
-        const newSkill = {
-            id: generateId('skill_'),
-            name: newSkillName.trim(),
-            activities: selectedActivities,
-            createdAt: new Date().toISOString()
-        };
-        updateState({ skills: [...skills, newSkill] });
-        setNewSkillName('');
-        setSelectedActivities([]);
-        setIsAddingSkill(false);
+    const handleSaveSkill = () => {
+        if (!skillName.trim()) return;
+        
+        let updatedSkills;
+        if (editingSkill) {
+            updatedSkills = skills.map(s => s.id === editingSkill.id ? { ...s, name: skillName.trim(), activities: selectedActivities } : s);
+        } else {
+            const newSkill = {
+                id: generateId('skill_'),
+                name: skillName.trim(),
+                activities: selectedActivities,
+                createdAt: new Date().toISOString()
+            };
+            updatedSkills = [...skills, newSkill];
+        }
+        
+        updateState({ skills: updatedSkills });
+        setIsSkillModalOpen(false);
+        setEditingSkill(null);
     };
 
     const handleDeleteSkill = (id) => {
-        if (window.confirm('Are you sure you want to delete this skill? History linked to activities will remain, but the skill progression will be lost.')) {
+        if (window.confirm('Delete this skill? This will not affect your activity history.')) {
             updateState({ skills: skills.filter(s => s.id !== id) });
         }
     };
 
-    const handleAddGoal = () => {
-        if (!newGoalTitle.trim()) return;
-        const newGoal = {
-            id: generateId('goal_'),
-            title: newGoalTitle.trim(),
-            description: newGoalDesc.trim(),
-            type: newGoalType,
-            targetHours: parseFloat(newGoalTarget) || 0,
-            skillId: newGoalSkillId || null,
-            completed: false,
-            createdAt: new Date().toISOString()
-        };
-        updateState({ goals: [...goals, newGoal] });
-        setNewGoalTitle('');
-        setNewGoalDesc('');
-        setNewGoalTarget(0);
-        setNewGoalSkillId('');
-        setIsAddingGoal(false);
+    const handleSaveGoal = () => {
+        if (!goalTitle.trim()) return;
+        
+        let updatedGoals;
+        if (editingGoal) {
+            updatedGoals = goals.map(g => g.id === editingGoal.id ? { 
+                ...g, 
+                title: goalTitle.trim(), 
+                description: goalDesc.trim(), 
+                type: goalType, 
+                targetHours: parseFloat(goalTarget) || 0,
+                skillId: goalSkillId || null,
+                activityId: goalActivityId || null
+            } : g);
+        } else {
+            const newGoal = {
+                id: generateId('goal_'),
+                title: goalTitle.trim(),
+                description: goalDesc.trim(),
+                type: goalType,
+                targetHours: parseFloat(goalTarget) || 0,
+                skillId: goalSkillId || null,
+                activityId: goalActivityId || null,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            updatedGoals = [...goals, newGoal];
+        }
+        
+        updateState({ goals: updatedGoals });
+        setIsGoalModalOpen(false);
+        setEditingGoal(null);
     };
 
     const handleDeleteGoal = (id) => {
-        updateState({ goals: goals.filter(g => g.id !== id) });
+        if (window.confirm('Delete this goal?')) {
+            updateState({ goals: goals.filter(g => g.id !== id) });
+        }
+    };
+
+    const handleToggleGoal = (id) => {
+        const updated = goals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+        updateState({ goals: updated });
     };
 
     const toggleActivitySelection = (id) => {
@@ -158,9 +224,14 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                         </div>
                         <h3 className="skill-name">{skill.name}</h3>
                     </div>
-                    <button className="icon-btn delete-btn" onClick={() => handleDeleteSkill(skill.id)}>
-                        <Trash2 size={14} />
-                    </button>
+                    <div className="card-actions">
+                        <button className="icon-btn" onClick={() => { setEditingSkill(skill); setIsSkillModalOpen(true); }}>
+                            <Pencil size={14} />
+                        </button>
+                        <button className="icon-btn delete-btn" onClick={() => handleDeleteSkill(skill.id)}>
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="skill-stats">
@@ -201,7 +272,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 </div>
 
                 <div className="linked-activities">
-                    {skill.activities.map(actId => {
+                    {(skill.activities || []).map(actId => {
                         const act = activities.find(a => a.id === actId);
                         return act ? (
                             <span key={actId} className="activity-tag-mini">
@@ -216,16 +287,28 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
 
     const GoalCard = ({ goal }) => {
         const isLongTerm = goal.type === 'long-term';
+        const isCompleted = goal.completed;
         
         return (
-            <div className={`profile-card goal-card ${goal.completed ? 'completed' : ''}`}>
+            <div className={`profile-card goal-card ${goal.type} ${isCompleted ? 'completed' : ''}`}>
                 <div className="goal-header">
-                    <div className={`goal-type-tag ${goal.type}`}>
-                        {goal.type === 'long-term' ? 'Long Term' : 'Short Term'}
+                    <div className="goal-type-info">
+                        <div className={`goal-type-tag ${goal.type}`}>
+                            {goal.type === 'long-term' ? 'Long Term' : 'Short Term'}
+                        </div>
+                        {isCompleted && <span className="completed-badge"><CheckCircle2 size={12} /> Completed</span>}
                     </div>
-                    <button className="icon-btn delete-btn" onClick={() => handleDeleteGoal(goal.id)}>
-                        <Trash2 size={14} />
-                    </button>
+                    <div className="card-actions">
+                        <button className="icon-btn" onClick={() => handleToggleGoal(goal.id)}>
+                            {isCompleted ? <CheckCircle2 size={14} color="var(--success)" /> : <Circle size={14} />}
+                        </button>
+                        <button className="icon-btn" onClick={() => { setEditingGoal(goal); setIsGoalModalOpen(true); }}>
+                            <Pencil size={14} />
+                        </button>
+                        <button className="icon-btn delete-btn" onClick={() => handleDeleteGoal(goal.id)}>
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
                 </div>
 
                 <h3 className="goal-title">{goal.title}</h3>
@@ -242,19 +325,27 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                                 className="progress-bar-fill" 
                                 style={{ 
                                     width: `${goal.progress}%`,
-                                    backgroundColor: isLongTerm ? '#8b5cf6' : 'var(--accent)'
+                                    backgroundColor: isCompleted ? 'var(--success)' : (isLongTerm ? '#8b5cf6' : 'var(--accent)')
                                 }}
                             ></div>
                         </div>
                     </div>
                 )}
 
-                {goal.skillId && (
-                    <div className="goal-link">
-                        <Zap size={12} />
-                        <span>Linked to {skills.find(s => s.id === goal.skillId)?.name}</span>
-                    </div>
-                )}
+                <div className="goal-links-row">
+                    {goal.skillId && (
+                        <div className="goal-link">
+                            <Zap size={12} />
+                            <span>{skills.find(s => s.id === goal.skillId)?.name}</span>
+                        </div>
+                    )}
+                    {goal.activityId && (
+                        <div className="goal-link">
+                            <ActivityIcon size={12} />
+                            <span>{activities.find(a => a.id === goal.activityId)?.name}</span>
+                        </div>
+                    )}
+                </div>
             </div>
         );
     };
@@ -288,8 +379,8 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                         <span className="stat-label">Skills</span>
                     </div>
                     <div className="hero-stat">
-                        <span className="stat-val">{goals.filter(g => g.type === 'long-term').length}</span>
-                        <span className="stat-label">Life Goals</span>
+                        <span className="stat-val">{goals.length}</span>
+                        <span className="stat-label">Goals</span>
                     </div>
                     <div className="hero-stat">
                         <span className="stat-val">{Math.round(skillsWithData.reduce((acc, s) => acc + s.totalHours, 0))}h</span>
@@ -320,7 +411,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     <div className="skills-section">
                         <div className="section-header">
                             <h2>Skills Progression</h2>
-                            <button className="btn primary sm" onClick={() => setIsAddingSkill(true)}>
+                            <button className="btn primary sm" onClick={() => { setEditingSkill(null); setIsSkillModalOpen(true); }}>
                                 <Plus size={16} /> Add Skill
                             </button>
                         </div>
@@ -343,7 +434,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     <div className="goals-section">
                         <div className="section-header">
                             <h2>Life & Growth Goals</h2>
-                            <button className="btn primary sm" onClick={() => setIsAddingGoal(true)}>
+                            <button className="btn primary sm" onClick={() => { setEditingGoal(null); setIsGoalModalOpen(true); }}>
                                 <Plus size={16} /> New Goal
                             </button>
                         </div>
@@ -364,12 +455,12 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
             </div>
 
             {/* Modals */}
-            {isAddingSkill && (
+            {isSkillModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content profile-modal">
                         <div className="modal-header">
-                            <h3>Add New Skill</h3>
-                            <button className="close-btn" onClick={() => setIsAddingSkill(false)}>&times;</button>
+                            <h3>{editingSkill ? 'Edit Skill' : 'Add New Skill'}</h3>
+                            <button className="close-btn" onClick={() => setIsSkillModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
@@ -377,8 +468,8 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                                 <input 
                                     type="text" 
                                     placeholder="e.g. Unreal Engine, Japanese, Piano" 
-                                    value={newSkillName}
-                                    onChange={(e) => setNewSkillName(e.target.value)}
+                                    value={skillName}
+                                    onChange={(e) => setSkillName(e.target.value)}
                                     autoFocus
                                 />
                             </div>
@@ -399,19 +490,19 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn outline" onClick={() => setIsAddingSkill(false)}>Cancel</button>
-                            <button className="btn primary" onClick={handleAddSkill}>Create Skill</button>
+                            <button className="btn outline" onClick={() => setIsSkillModalOpen(false)}>Cancel</button>
+                            <button className="btn primary" onClick={handleSaveSkill}>{editingSkill ? 'Save Changes' : 'Create Skill'}</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {isAddingGoal && (
+            {isGoalModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content profile-modal">
                         <div className="modal-header">
-                            <h3>Set New Goal</h3>
-                            <button className="close-btn" onClick={() => setIsAddingGoal(false)}>&times;</button>
+                            <h3>{editingGoal ? 'Edit Goal' : 'Set New Goal'}</h3>
+                            <button className="close-btn" onClick={() => setIsGoalModalOpen(false)}>&times;</button>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
@@ -419,22 +510,22 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                                 <input 
                                     type="text" 
                                     placeholder="e.g. Finish Unreal Course" 
-                                    value={newGoalTitle}
-                                    onChange={(e) => setNewGoalTitle(e.target.value)}
+                                    value={goalTitle}
+                                    onChange={(e) => setGoalTitle(e.target.value)}
                                 />
                             </div>
                             <div className="form-group">
                                 <label>Description</label>
                                 <textarea 
                                     placeholder="What does success look like?" 
-                                    value={newGoalDesc}
-                                    onChange={(e) => setNewGoalDesc(e.target.value)}
+                                    value={goalDesc}
+                                    onChange={(e) => setGoalDesc(e.target.value)}
                                 />
                             </div>
                             <div className="form-row">
                                 <div className="form-group flex-1">
                                     <label>Goal Type</label>
-                                    <select value={newGoalType} onChange={(e) => setNewGoalType(e.target.value)}>
+                                    <select value={goalType} onChange={(e) => setGoalType(e.target.value)}>
                                         <option value="short-term">Short-term</option>
                                         <option value="long-term">Long-term</option>
                                     </select>
@@ -443,24 +534,35 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                                     <label>Target Hours</label>
                                     <input 
                                         type="number" 
-                                        value={newGoalTarget}
-                                        onChange={(e) => setNewGoalTarget(e.target.value)}
+                                        value={goalTarget}
+                                        onChange={(e) => setGoalTarget(e.target.value)}
                                     />
                                 </div>
                             </div>
-                            <div className="form-group">
-                                <label>Associated Skill (Optional)</label>
-                                <select value={newGoalSkillId} onChange={(e) => setNewGoalSkillId(e.target.value)}>
-                                    <option value="">None</option>
-                                    {skills.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                </select>
+                            <div className="form-row">
+                                <div className="form-group flex-1">
+                                    <label>Associated Skill (Optional)</label>
+                                    <select value={goalSkillId} onChange={(e) => { setGoalSkillId(e.target.value); setGoalActivityId(''); }}>
+                                        <option value="">None</option>
+                                        {skills.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group flex-1">
+                                    <label>Associated Activity (Optional)</label>
+                                    <select value={goalActivityId} onChange={(e) => { setGoalActivityId(e.target.value); setGoalSkillId(''); }}>
+                                        <option value="">None</option>
+                                        {activities.filter(a => !a.archived).map(a => (
+                                            <option key={a.id} value={a.id}>{a.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn outline" onClick={() => setIsAddingGoal(false)}>Cancel</button>
-                            <button className="btn primary" onClick={handleAddGoal}>Create Goal</button>
+                            <button className="btn outline" onClick={() => setIsGoalModalOpen(false)}>Cancel</button>
+                            <button className="btn primary" onClick={handleSaveGoal}>{editingGoal ? 'Save Changes' : 'Create Goal'}</button>
                         </div>
                     </div>
                 </div>
@@ -502,9 +604,7 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     border: 1px solid rgba(255, 255, 255, 0.1);
                 }
 
-                .hero-icon {
-                    color: #fbbf24;
-                }
+                .hero-icon { color: #fbbf24; }
 
                 .hero-text h1 {
                     font-size: 2.5rem;
@@ -515,35 +615,12 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     -webkit-text-fill-color: transparent;
                 }
 
-                .hero-text p {
-                    color: #94a3b8;
-                    font-size: 1.1rem;
-                }
+                .hero-text p { color: #94a3b8; font-size: 1.1rem; }
 
-                .hero-stats {
-                    display: flex;
-                    gap: 3rem;
-                }
-
-                .hero-stat {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                }
-
-                .stat-val {
-                    font-size: 2rem;
-                    font-weight: 800;
-                    color: white;
-                }
-
-                .stat-label {
-                    font-size: 0.85rem;
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    font-weight: 600;
-                }
+                .hero-stats { display: flex; gap: 3rem; }
+                .hero-stat { display: flex; flex-direction: column; align-items: center; }
+                .stat-val { font-size: 2rem; font-weight: 800; color: white; }
+                .stat-label { font-size: 0.85rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
                 .profile-nav {
                     display: flex;
@@ -582,14 +659,11 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     margin-bottom: 1.5rem;
                 }
 
-                .section-header h2 {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                }
+                .section-header h2 { font-size: 1.5rem; font-weight: 700; }
 
                 .skills-grid, .goals-grid {
                     display: grid;
-                    grid-templateColumns: repeat(auto-fill, minmax(340px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
                     gap: 1.5rem;
                 }
 
@@ -599,6 +673,8 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     padding: 1.5rem;
                     border: 1px solid #e2e8f0;
                     transition: transform 0.2s, box-shadow 0.2s;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .profile-card:hover {
@@ -606,18 +682,14 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
                 }
 
-                .skill-header {
+                .skill-header, .goal-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: flex-start;
                     margin-bottom: 1rem;
                 }
 
-                .skill-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.75rem;
-                }
+                .skill-info, .goal-type-info { display: flex; align-items: center; gap: 0.75rem; }
 
                 .skill-level-badge {
                     padding: 0.25rem 0.75rem;
@@ -628,196 +700,63 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                     text-transform: uppercase;
                 }
 
-                .skill-name {
-                    font-size: 1.25rem;
-                    font-weight: 700;
-                    color: #1e293b;
-                }
+                .skill-name, .goal-title { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
 
-                .skill-stats {
-                    display: flex;
-                    gap: 1.5rem;
-                    margin-bottom: 1.5rem;
-                }
+                .skill-stats { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+                .stat-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #64748b; font-weight: 500; }
 
-                .stat-item {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-size: 0.85rem;
-                    color: #64748b;
-                    font-weight: 500;
-                }
+                .progress-section, .goal-progress-section { margin-bottom: 1.5rem; }
+                .progress-info { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: #475569; }
 
-                .progress-section {
-                    margin-bottom: 1.5rem;
-                }
+                .progress-bar-container { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+                .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease-out; }
 
-                .progress-info {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 0.85rem;
-                    font-weight: 600;
-                    margin-bottom: 0.5rem;
-                    color: #475569;
-                }
+                .next-level-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem; text-align: right; }
 
-                .progress-bar-container {
-                    height: 8px;
-                    background: #f1f5f9;
-                    border-radius: 4px;
-                    overflow: hidden;
-                }
+                .linked-activities { display: flex; flex-wrap: wrap; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; margin-top: auto; }
+                .activity-tag-mini { font-size: 0.7rem; padding: 0.2rem 0.6rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; color: #64748b; font-weight: 600; }
 
-                .progress-bar-fill {
-                    height: 100%;
-                    border-radius: 4px;
-                    transition: width 1s ease-out;
-                }
+                .goal-card { border-left: 4px solid var(--accent); position: relative; }
+                .goal-card.long-term { border-left-color: #8b5cf6; }
+                .goal-card.completed { border-left-color: var(--success); }
+                .goal-card.completed .goal-title { text-decoration: line-through; opacity: 0.6; }
 
-                .next-level-hint {
-                    font-size: 0.75rem;
-                    color: #94a3b8;
-                    margin-top: 0.5rem;
-                    text-align: right;
-                }
+                .goal-type-tag { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.6rem; border-radius: 6px; }
+                .goal-type-tag.short-term { background: #eff6ff; color: #3b82f6; }
+                .goal-type-tag.long-term { background: #f5f3ff; color: #8b5cf6; }
 
-                .linked-activities {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 0.5rem;
-                    padding-top: 1rem;
-                    border-top: 1px solid #f1f5f9;
-                }
+                .completed-badge { font-size: 0.7rem; font-weight: 700; color: var(--success); display: flex; align-items: center; gap: 0.25rem; }
 
-                .activity-tag-mini {
-                    font-size: 0.7rem;
-                    padding: 0.2rem 0.6rem;
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 6px;
-                    color: #64748b;
-                    font-weight: 600;
-                }
+                .goal-desc { font-size: 0.9rem; color: #64748b; line-height: 1.5; margin-bottom: 1.5rem; }
 
-                .goal-card {
-                    border-left: 4px solid var(--accent);
-                }
+                .goal-links-row { display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid #f1f5f9; margin-top: auto; }
+                .goal-link { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #94a3b8; font-weight: 600; }
 
-                .goal-card.long-term {
-                    border-left-color: #8b5cf6;
-                }
+                .empty-state { grid-column: 1 / -1; padding: 4rem; text-align: center; background: #f8fafc; border-radius: 24px; border: 2px dashed #e2e8f0; color: #94a3b8; }
+                .empty-state h3 { color: #475569; margin: 1rem 0 0.5rem 0; }
 
-                .goal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1rem;
-                }
+                .card-actions { display: flex; gap: 0.25rem; opacity: 0; transition: opacity 0.2s; }
+                .profile-card:hover .card-actions { opacity: 1; }
 
-                .goal-type-tag {
-                    font-size: 0.65rem;
-                    font-weight: 800;
-                    text-transform: uppercase;
-                    padding: 0.2rem 0.6rem;
-                    border-radius: 6px;
-                    letter-spacing: 0.5px;
-                }
+                .activity-selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+                .activity-select-item { padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+                .activity-select-item.selected { background: var(--accent); color: white; border-color: var(--accent); }
 
-                .goal-type-tag.short-term {
-                    background: #eff6ff;
-                    color: #3b82f6;
-                }
-
-                .goal-type-tag.long-term {
-                    background: #f5f3ff;
-                    color: #8b5cf6;
-                }
-
-                .goal-title {
-                    font-size: 1.15rem;
-                    font-weight: 700;
-                    margin-bottom: 0.5rem;
-                    color: #1e293b;
-                }
-
-                .goal-desc {
-                    font-size: 0.9rem;
-                    color: #64748b;
-                    line-height: 1.5;
-                    margin-bottom: 1.5rem;
-                }
-
-                .goal-link {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    font-size: 0.8rem;
-                    color: #94a3b8;
-                    margin-top: 1rem;
-                }
-
-                .empty-state {
-                    grid-column: 1 / -1;
-                    padding: 4rem;
-                    text-align: center;
-                    background: #f8fafc;
-                    border-radius: 24px;
-                    border: 2px dashed #e2e8f0;
-                    color: #94a3b8;
-                }
-
-                .empty-state h3 {
-                    color: #475569;
-                    margin: 1rem 0 0.5rem 0;
-                }
-
-                .activity-selection-grid {
-                    display: grid;
-                    grid-templateColumns: repeat(auto-fill, minmax(120px, 1fr));
-                    gap: 0.5rem;
-                    margin-top: 0.5rem;
-                }
-
-                .activity-select-item {
-                    padding: 0.5rem;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    font-size: 0.85rem;
-                    text-align: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .activity-select-item.selected {
-                    background: var(--accent);
-                    color: white;
-                    border-color: var(--accent);
-                }
-
-                .delete-btn {
-                    opacity: 0;
-                    transition: opacity 0.2s;
-                }
-
-                .profile-card:hover .delete-btn {
-                    opacity: 1;
-                }
+                .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+                .modal-content.profile-modal { background: white; width: 90%; max-width: 550px; border-radius: 24px; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+                .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+                .modal-body { display: flex; flexDirection: column; gap: 1.25rem; }
+                .form-group { display: flex; flexDirection: column; gap: 0.5rem; }
+                .form-group label { font-size: 0.85rem; font-weight: 700; color: #1e293b; }
+                .form-group input, .form-group select, .form-group textarea { padding: 0.75rem; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.95rem; }
+                .form-row { display: flex; gap: 1rem; }
+                .help-text { font-size: 0.8rem; color: #64748b; }
+                .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem; }
 
                 @media (max-width: 768px) {
-                    .profile-hero {
-                        flex-direction: column;
-                        padding: 2rem;
-                        gap: 2rem;
-                        text-align: center;
-                    }
-                    .hero-content {
-                        flex-direction: column;
-                        gap: 1rem;
-                    }
-                    .hero-stats {
-                        gap: 1.5rem;
-                    }
+                    .profile-hero { flex-direction: column; padding: 2rem; gap: 2rem; text-align: center; }
+                    .hero-content { flex-direction: column; gap: 1rem; }
+                    .hero-stats { gap: 1.5rem; }
                 }
             `}</style>
         </div>

@@ -57,43 +57,55 @@ export default function ProductivityChart({ appState }) {
         ctx.lineWidth = 1;
         ctx.beginPath();
         const numLines = 4;
-        for(let i=0; i<=numLines; i++) {
-            const y = 20 + (i * (height - 50) / numLines);
-            ctx.moveTo(20, y);
-            ctx.lineTo(width - 20, y);
-        }
-        ctx.stroke();
+        const chartLeft = 40;
+        const chartRight = width - 20;
+        const chartTop = 20;
+        const chartBottom = height - 30;
+        const chartHeight = chartBottom - chartTop;
 
-        const barWidth = (width - 40) / 7;
+        ctx.font = '500 10px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        for(let i=0; i<=numLines; i++) {
+            const y = chartTop + (i * chartHeight / numLines);
+            ctx.beginPath();
+            ctx.moveTo(chartLeft, y);
+            ctx.lineTo(chartRight, y);
+            ctx.stroke();
+            
+            const val = maxHours - (i * maxHours / numLines);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText(`${Math.round(val)}h`, chartLeft - 8, y);
+        }
+
+        const barWidth = (chartRight - chartLeft) / 7;
         ctx.font = '500 11px Inter, sans-serif';
         ctx.textAlign = 'center';
 
         for (let i = 0; i < 7; i++) {
-            const prodH = (prodTotals[i] / maxHours) * (height - 50);
-            const entH = (entTotals[i] / maxHours) * (height - 50);
-            const x = 20 + i * barWidth + (barWidth * 0.1);
-            let y = height - 30;
+            const prodH = (prodTotals[i] / maxHours) * chartHeight;
+            const entH = (entTotals[i] / maxHours) * chartHeight;
+            const x = chartLeft + i * barWidth + (barWidth * 0.1);
+            let y = chartBottom;
             
             if (prodTotals[i] > 0 || entTotals[i] > 0) {
-                // Draw Productive
                 if (prodTotals[i] > 0) {
                     y -= prodH;
-                    ctx.fillStyle = '#2563eb'; // Deep Blue
+                    ctx.fillStyle = '#2563eb'; 
                     ctx.fillRect(x, y, barWidth * 0.8, prodH);
                 }
                 
-                // Draw Entertainment on top
                 if (entTotals[i] > 0) {
                     y -= entH;
-                    ctx.fillStyle = '#8b5cf6'; // Purple
+                    ctx.fillStyle = '#8b5cf6'; 
                     ctx.fillRect(x, y, barWidth * 0.8, entH);
                 }
             } else {
-                ctx.fillStyle = '#e5e7eb'; // Gray for empty/future looking
-                ctx.fillRect(x, height - 30 - 20, barWidth * 0.8, 20);
+                ctx.fillStyle = '#e5e7eb'; 
+                ctx.fillRect(x, chartBottom - 20, barWidth * 0.8, 20);
             }
             
-            // X-axis label
             ctx.fillStyle = '#111827';
             ctx.fillText(last7Days[i], x + (barWidth * 0.4), height - 10);
         }

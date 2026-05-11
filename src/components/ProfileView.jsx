@@ -742,21 +742,167 @@ export default function ProfileView({ appState, updateState, user, syncStatus, l
                 .activity-select-item { padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; text-align: center; cursor: pointer; transition: all 0.2s; }
                 .activity-select-item.selected { background: var(--accent); color: white; border-color: var(--accent); }
 
-                .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-                .modal-content.profile-modal { background: white; width: 90%; max-width: 550px; border-radius: 24px; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-                .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-                .modal-body { display: flex; flexDirection: column; gap: 1.25rem; }
-                .form-group { display: flex; flexDirection: column; gap: 0.5rem; }
-                .form-group label { font-size: 0.85rem; font-weight: 700; color: #1e293b; }
-                .form-group input, .form-group select, .form-group textarea { padding: 0.75rem; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 0.95rem; }
-                .form-row { display: flex; gap: 1rem; }
-                .help-text { font-size: 0.8rem; color: #64748b; }
-                .modal-footer { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 2rem; }
+                .modal-overlay { 
+                    position: fixed; 
+                    top: 0; left: 0; width: 100%; height: 100%; 
+                    background: rgba(15, 23, 42, 0.6); 
+                    backdrop-filter: blur(8px); 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    z-index: 2000; 
+                    animation: fadeIn 0.2s ease-out;
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .modal-content.profile-modal { 
+                    background: white; 
+                    width: 95%; 
+                    max-width: 600px; 
+                    border-radius: 28px; 
+                    padding: 2.5rem; 
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); 
+                    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+                }
+
+                @keyframes slideUp {
+                    from { transform: translateY(20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                .modal-header { 
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    margin-bottom: 2rem; 
+                }
+
+                .modal-header h3 {
+                    font-size: 1.5rem;
+                    font-weight: 800;
+                    color: #1e293b;
+                }
+
+                .modal-body { 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 1.5rem; 
+                }
+
+                .form-group { 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 0.6rem; 
+                }
+
+                .form-group label { 
+                    font-size: 0.9rem; 
+                    font-weight: 700; 
+                    color: #475569; 
+                    margin-left: 2px;
+                }
+
+                .form-group input, .form-group select, .form-group textarea { 
+                    padding: 0.85rem 1rem; 
+                    border-radius: 14px; 
+                    border: 2px solid #f1f5f9; 
+                    background: #f8fafc;
+                    font-size: 1rem; 
+                    color: #1e293b;
+                    transition: all 0.2s;
+                }
+
+                .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+                    outline: none;
+                    border-color: var(--accent);
+                    background: white;
+                    box-shadow: 0 0 0 4px var(--accent-light);
+                }
+
+                .form-row { 
+                    display: flex; 
+                    gap: 1.25rem; 
+                }
+
+                .help-text { 
+                    font-size: 0.85rem; 
+                    color: #64748b; 
+                    margin-bottom: 0.25rem;
+                }
+
+                .activity-selection-grid { 
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.75rem; 
+                    margin-top: 0.5rem; 
+                }
+
+                .activity-select-item { 
+                    padding: 0.6rem 1.2rem; 
+                    border: 2px solid #f1f5f9; 
+                    border-radius: 12px; 
+                    font-size: 0.9rem; 
+                    font-weight: 600;
+                    color: #64748b;
+                    cursor: pointer; 
+                    transition: all 0.2s;
+                    background: white;
+                }
+
+                .activity-select-item:hover {
+                    border-color: #e2e8f0;
+                    transform: translateY(-1px);
+                }
+
+                .activity-select-item.selected { 
+                    background: var(--accent); 
+                    color: white; 
+                    border-color: var(--accent); 
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+                }
+
+                .modal-footer { 
+                    display: flex; 
+                    justify-content: flex-end; 
+                    gap: 1rem; 
+                    margin-top: 2.5rem; 
+                }
+
+                .modal-footer .btn {
+                    padding: 0.85rem 2rem;
+                    border-radius: 14px;
+                    font-weight: 700;
+                }
+
+                .close-btn {
+                    width: 32px;
+                    height: 32px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 10px;
+                    background: #f1f5f9;
+                    border: none;
+                    color: #64748b;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .close-btn:hover {
+                    background: #fee2e2;
+                    color: #ef4444;
+                }
 
                 @media (max-width: 768px) {
                     .profile-hero { flex-direction: column; padding: 2rem; gap: 2rem; text-align: center; }
                     .hero-content { flex-direction: column; gap: 1rem; }
                     .hero-stats { gap: 1.5rem; }
+                    .form-row { flex-direction: column; gap: 1rem; }
+                    .modal-content.profile-modal { padding: 1.5rem; }
                 }
             `}</style>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export default function CanvasBarChart({ data, height = 200, isStacked = true, showLegend = true, type = 'bar', minPointWidth = 40 }) {
+export default function CanvasBarChart({ data, height = 200, isStacked = true, showLegend = true, type = 'bar', minPointWidth = 40, unit = 'h' }) {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
 
@@ -71,7 +71,9 @@ export default function CanvasBarChart({ data, height = 200, isStacked = true, s
             
             const val = maxVal - (i * maxVal / numLines);
             ctx.fillStyle = '#94a3b8';
-            ctx.fillText(`${Math.round(val)}h`, chartLeft - 8, y);
+            const formattedVal = val >= 1000 ? (val / 1000).toFixed(1) + 'k' : Math.round(val);
+            const label = unit === 'h' ? `${formattedVal}${unit}` : `${unit}${formattedVal}`;
+            ctx.fillText(label, chartLeft - 8, y);
         }
 
         const pointSpacing = (chartRight - chartLeft) / data.labels.length;

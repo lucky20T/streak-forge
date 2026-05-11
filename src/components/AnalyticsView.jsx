@@ -274,6 +274,7 @@ export default function AnalyticsView({ appState, user, syncStatus, lastSynced, 
                         isStacked={false} 
                         type="bar"
                         minPointWidth={40}
+                        unit=""
                     />
                     
                     <div style={{ display: 'flex', gap: '3rem', marginTop: '2.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '2rem' }}>
@@ -383,6 +384,7 @@ export default function AnalyticsView({ appState, user, syncStatus, lastSynced, 
                         isStacked={false} 
                         type={filter === 'Week' ? 'bar' : 'line'}
                         minPointWidth={40}
+                        unit="₹"
                     />
                 </section>
             </div>

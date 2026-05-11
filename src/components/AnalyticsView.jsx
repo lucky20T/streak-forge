@@ -3,6 +3,7 @@ import TopHeader from './TopHeader';
 import CanvasBarChart from './CanvasBarChart';
 import CanvasPieChart from './CanvasPieChart';
 import { formatHoursMins } from '../utils';
+import DeepActivityStats from './DeepActivityStats';
 import { 
     getDateRange, 
     getDatesInRange, 
@@ -434,6 +435,9 @@ export default function AnalyticsView({ appState, user, syncStatus, lastSynced, 
                     <CanvasPieChart data={pieChartData} height={300} />
                 </section>
             </div>
+
+            {/* Deep Activity Insights Section */}
+            <DeepActivityStats appState={appState} />
         </div>
     );
 }

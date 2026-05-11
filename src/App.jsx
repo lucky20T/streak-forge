@@ -181,6 +181,12 @@ function App() {
             <ManageActivitiesView 
                 appState={appState} 
                 updateState={updateState} 
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
 
@@ -188,6 +194,12 @@ function App() {
             <ManageExercisesView 
                 appState={appState} 
                 updateState={updateState} 
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
 

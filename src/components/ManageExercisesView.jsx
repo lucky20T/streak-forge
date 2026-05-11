@@ -3,7 +3,7 @@ import TopHeader from './TopHeader';
 import { generateId } from '../utils';
 import { Zap, GripVertical, Pencil, Archive, RotateCcw } from 'lucide-react';
 
-export default function ManageExercisesView({ appState, updateState }) {
+export default function ManageExercisesView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     // Quick Add Form
     const [newName, setNewName] = useState('');
     const [newCategory, setNewCategory] = useState('Push');
@@ -115,7 +115,7 @@ export default function ManageExercisesView({ appState, updateState }) {
 
     return (
         <div className="app-container">
-            <TopHeader title="Streak Forge" onManage={() => {}} />
+            <TopHeader title="Manage Exercises" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
 
             <div style={{ marginBottom: '3rem' }}>
                 <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.25rem' }}>Manage Exercises</h1>

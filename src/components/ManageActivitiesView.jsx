@@ -3,7 +3,7 @@ import TopHeader from './TopHeader';
 import { Code, Languages, Gamepad2, Play, Pencil, Archive, RotateCcw, Box, Briefcase, Film, Target } from 'lucide-react';
 import { generateId } from '../utils';
 
-export default function ManageActivitiesView({ appState, updateState }) {
+export default function ManageActivitiesView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     // Add mode
     const [isAdding, setIsAdding] = useState(false);
     const [newName, setNewName] = useState('');
@@ -249,7 +249,7 @@ export default function ManageActivitiesView({ appState, updateState }) {
 
     return (
         <div className="app-container">
-            <TopHeader title="Streak Forge" onManage={() => {}} />
+            <TopHeader title="Manage Activities" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3rem' }}>
                 <div>

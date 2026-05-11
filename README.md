@@ -34,9 +34,17 @@ Streak Forge follows an **offline-first** philosophy, using local storage as the
 - **Expense Tracking**: Log daily transactions with automatic balance calculations.
 
 ### 📈 Advanced Analytics
-- **Weekly & Monthly Trends**: Deep dive into your performance over the last 7 or 30 days.
+- **Rolling Weekly Trends**: Now uses a rolling 7-day window for consistent data continuity.
+- **Deep Activity Analysis**: Dedicated analysis engine for specific activities with dedicated line graphs.
+- **Visual Time Marks**: All charts now feature numerical Y-axis markers for precise screen time identification.
 - **Dynamic Distribution**: Interactive pie charts for Activity and Subcategory breakdown.
 - **Smart Insights**: Automatically generated text insights based on your performance trends.
+
+### 🧠 Profile & Progression System
+- **Long-Term Growth**: Set and track long-term career or life milestones.
+- **Skill Progression**: Connect activities to specific skills (e.g., Unreal Engine, Japanese) and level them up.
+- **Level Engine**: Dynamic XP system that calculates levels based on cumulative focus hours.
+- **Goal Management**: Integrated short-term and long-term goal tracking with auto-completion logic.
 
 ### 📱 Mobile-First Design
 - **Bottom Navigation**: Sleek, app-like bottom navigation bar on mobile devices.

@@ -15,6 +15,9 @@ export function getDateRange(filter) {
         const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
         startDate = new Date(today.getFullYear(), today.getMonth(), diff);
         startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
     } else if (filter === 'This Month' || filter === 'Month') {
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
     } else if (filter === 'Year') {

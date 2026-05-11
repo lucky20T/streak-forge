@@ -22,7 +22,8 @@ function App() {
   const { user, authLoading, signInWithGoogle, logout } = useAuth();
   const [activeView, setActiveView] = useState('view-activity');
   const [activeModal, setActiveModal] = useState(null);
-  const [syncStatus, setSyncStatus] = useState('idle'); // cloud sync status
+   const [syncStatus, setSyncStatus] = useState('idle'); // cloud sync status
+   const [lastSynced, setLastSynced] = useState(null);
 
   const appStateRef = useRef(appState);
   useEffect(() => { appStateRef.current = appState; }, [appState]);
@@ -60,6 +61,9 @@ function App() {
         isMergingRef.current = true;
         updateState(merged);
         setTimeout(() => { isMergingRef.current = false; }, 100);
+      }
+      if (cloudData._syncedAt) {
+        setLastSynced(new Date(cloudData._syncedAt));
       }
       setSyncStatus('synced');
     });
@@ -124,6 +128,7 @@ function App() {
                 openManage={() => setActiveView('view-manage-activities')}
                 user={user}
                 syncStatus={syncStatus}
+                lastSynced={lastSynced}
                 onSignIn={signInWithGoogle}
                 onLogout={logout}
                 onSyncNow={triggerSync}
@@ -135,6 +140,12 @@ function App() {
                 appState={appState} 
                 updateState={updateState} 
                 openManage={() => setActiveView('view-manage-exercises')}
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
 
@@ -145,12 +156,24 @@ function App() {
                 openTransactionModal={() => setActiveModal('log-transaction')}
                 openBudgetModal={() => setActiveModal('edit-budgets')}
                 openIncomeModal={() => setActiveModal('edit-income')}
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
 
         {activeView === 'view-analytics' && (
             <AnalyticsView 
                 appState={appState} 
+                user={user}
+                syncStatus={syncStatus}
+                lastSynced={lastSynced}
+                onSignIn={signInWithGoogle}
+                onLogout={logout}
+                onSyncNow={triggerSync}
             />
         )}
 
@@ -171,7 +194,7 @@ function App() {
         {activeView === 'view-settings' && (
             <SettingsView 
                 appState={appState} 
-                updateState={updateState}
+                lastSynced={lastSynced}
                 user={user}
                 syncStatus={syncStatus}
                 onSignIn={signInWithGoogle}

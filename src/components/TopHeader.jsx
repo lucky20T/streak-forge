@@ -8,10 +8,18 @@ const SYNC_LABEL = {
     offline: { text: 'Offline Mode',        color: '#9ca3af' },
 };
 
-export default function TopHeader({ title, onManage, user, syncStatus, onSignIn, onLogout, onSyncNow }) {
+export default function TopHeader({ title, onManage, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     const timeStr  = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     const sync     = SYNC_LABEL[syncStatus] || SYNC_LABEL.idle;
+    
+    let lastSyncStr = '';
+    if (lastSynced) {
+        const diff = Math.floor((new Date() - lastSynced) / 1000);
+        if (diff < 60) lastSyncStr = 'Just now';
+        else if (diff < 3600) lastSyncStr = `${Math.floor(diff/60)}m ago`;
+        else lastSyncStr = 'Long ago';
+    }
 
     return (
         <header className="top-header" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -30,7 +38,7 @@ export default function TopHeader({ title, onManage, user, syncStatus, onSignIn,
                     {syncStatus === 'syncing' && <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} />}
                     {(syncStatus === 'idle' || syncStatus === 'offline') && <CloudOff size={13} />}
                     {syncStatus === 'error'   && <CloudOff size={13} />}
-                    <span>{sync.text}</span>
+                    <span>{sync.text}{lastSyncStr ? ` (${lastSyncStr})` : ''}</span>
                 </div>
 
                 {user ? (
@@ -55,9 +63,14 @@ export default function TopHeader({ title, onManage, user, syncStatus, onSignIn,
                                     style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-color)' }}
                                 />
                             )}
-                            <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {user.displayName?.split(' ')[0]}
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {user.displayName?.split(' ')[0] || 'User'}
                             </span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {user.email}
+                            </span>
+                        </div>
                         </div>
 
                         {/* Logout */}

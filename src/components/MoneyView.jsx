@@ -1,6 +1,6 @@
 import TopHeader from './TopHeader';
 
-export default function MoneyView({ appState, updateState, openTransactionModal, openBudgetModal, openIncomeModal }) {
+export default function MoneyView({ appState, updateState, openTransactionModal, openBudgetModal, openIncomeModal, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const money = appState.money || { balance: 0, transactions: [], budgets: [], incomeSources: [] };
     
     // Calculate total income and expenses from transactions
@@ -70,7 +70,7 @@ export default function MoneyView({ appState, updateState, openTransactionModal,
 
     return (
         <div className="app-container">
-            <TopHeader title="Money Overview" />
+            <TopHeader title="Money Overview" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
 
             {/* Top Cards Row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>

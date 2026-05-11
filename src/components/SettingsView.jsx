@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import TopHeader from './TopHeader';
 
-export default function SettingsView({ appState, updateState, user, syncStatus, onSignIn, onLogout, onSyncNow }) {
+export default function SettingsView({ appState, updateState, user, syncStatus, lastSynced, onSignIn, onLogout, onSyncNow }) {
     const fileInputRef = useRef(null);
     const [importError, setImportError] = useState('');
 
@@ -58,7 +58,7 @@ export default function SettingsView({ appState, updateState, user, syncStatus, 
 
     return (
         <div className="app-container">
-            <TopHeader title="Settings" user={user} syncStatus={syncStatus} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
+            <TopHeader title="Settings" user={user} syncStatus={syncStatus} lastSynced={lastSynced} onSignIn={onSignIn} onLogout={onLogout} onSyncNow={onSyncNow} />
             <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Manage your data and application preferences.</p>
 
             <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px' }}>
@@ -80,7 +80,9 @@ export default function SettingsView({ appState, updateState, user, syncStatus, 
                             </div>
                             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                                 Status: <strong style={{ color: syncStatus === 'synced' ? '#10b981' : syncStatus === 'syncing' ? '#f59e0b' : '#9ca3af' }}>{syncStatus}</strong>
-                                {' — '}Your data syncs automatically every 5 minutes and on session end.
+                                {lastSynced && <span> — Last sync: {lastSynced.toLocaleTimeString()}</span>}
+                                <br />
+                                Your data syncs automatically every 5 minutes and on session end.
                             </div>
                         </div>
                     ) : (

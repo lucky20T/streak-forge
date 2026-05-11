@@ -14,14 +14,13 @@ export async function uploadData(userId, appState) {
 
     const now = Date.now();
     // Throttle to avoid hitting Firestore limits too hard, but keep it responsive
-    if (now - lastSyncTime < 5000) return; 
+    if (now - lastSyncTime < 3000) return; 
 
     try {
         const ref = doc(db, 'users', userId, 'data', 'main');
         await setDoc(ref, {
             ...appState,
             _syncedAt: now,
-            _deviceId: window.crypto.randomUUID() // Tag the device that made the change
         });
         lastSyncTime = now;
         console.log('[Sync] Uploaded to Firestore at', new Date(now).toLocaleTimeString());
@@ -40,10 +39,7 @@ export async function downloadData(userId) {
         const ref = doc(db, 'users', userId, 'data', 'main');
         const snap = await getDoc(ref);
         if (snap.exists()) {
-            const data = snap.data();
-            delete data._syncedAt;
-            delete data._deviceId;
-            return data;
+            return snap.data();
         }
         return null;
     } catch (err) {
@@ -65,9 +61,7 @@ export function subscribeToData(userId, onUpdate) {
     const ref = doc(db, 'users', userId, 'data', 'main');
     unsubscribeListener = onSnapshot(ref, (doc) => {
         if (doc.exists()) {
-            const data = doc.data();
-            // Don't trigger update if the change was local (optional optimization)
-            onUpdate(data);
+            onUpdate(doc.data());
         }
     }, (err) => {
         console.error('[Sync] Listener failed:', err);

@@ -12,8 +12,9 @@ export function getDateRange(filter) {
         endDate = new Date(startDate);
     } else if (filter === 'This Week' || filter === 'Week') {
         const day = today.getDay();
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        startDate = new Date(today.setDate(diff));
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+        startDate = new Date(today.getFullYear(), today.getMonth(), diff);
+        startDate.setHours(0, 0, 0, 0);
     } else if (filter === 'This Month' || filter === 'Month') {
         startDate = new Date(today.getFullYear(), today.getMonth(), 1);
     } else if (filter === 'Year') {

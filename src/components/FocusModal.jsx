@@ -64,7 +64,17 @@ export default function FocusModal({ appState, updateState, activityId, onClose,
     }
 
     const handleStart = () => {
-        setFocusState(prev => ({ ...prev, status: 'running' }));
+        setFocusState(prev => {
+            if (prev.status === 'running') return prev;
+            return { ...prev, status: 'running' };
+        });
+    };
+
+    const handlePause = () => {
+        setFocusState(prev => {
+            if (prev.status !== 'running') return prev;
+            return { ...prev, status: 'idle' };
+        });
     };
 
     const handleBreakClick = () => {
@@ -227,8 +237,11 @@ export default function FocusModal({ appState, updateState, activityId, onClose,
                             <button className="btn outline large flex-1" style={{ background: '#f3f4f6', border: 'none' }} onClick={handleBreakClick}>
                                 ⏸ Break
                             </button>
-                            <button className="btn primary large flex-1" onClick={handleStart}>
-                                {focusState.status === 'idle' && sessionDisplayTime > 0 ? '▶ Resume' : '▶ Start'}
+                            <button 
+                                className="btn primary large flex-1" 
+                                onClick={focusState.status === 'running' ? handlePause : handleStart}
+                            >
+                                {focusState.status === 'running' ? '⏸ Pause' : (focusState.status === 'idle' && sessionDisplayTime > 0 ? '▶ Resume' : '▶ Start')}
                             </button>
                             <button className="btn outline large flex-1" style={{ background: '#f3f4f6', border: 'none' }} onClick={handleStop}>
                                 ⏹ Stop

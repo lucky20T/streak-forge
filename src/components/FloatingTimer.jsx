@@ -86,11 +86,14 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
     const totalDisplayTime = todayData.time + displayTime;
     
     const handleStart = () => {
-        setSession(prev => ({
-            ...prev,
-            status: 'running',
-            lastRunStartTime: Date.now()
-        }));
+        setSession(prev => {
+            if (prev.status === 'running') return prev;
+            return {
+                ...prev,
+                status: 'running',
+                lastRunStartTime: Date.now()
+            };
+        });
     };
 
     const handlePause = () => {
@@ -329,8 +332,12 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                             <button className="btn outline flex-1" style={{ background: '#f3f4f6', border: 'none', padding: '0.75rem' }} onClick={handleBreakClick}>
                                 <Pause size={16} />
                             </button>
-                            <button className="btn primary flex-2" style={{ padding: '0.75rem' }} onClick={handleStart}>
-                                {session.status === 'idle' && displayTime > 0 ? 'Resume' : 'Start'}
+                            <button 
+                                className="btn primary flex-2" 
+                                style={{ padding: '0.75rem' }} 
+                                onClick={session.status === 'running' ? handlePause : handleStart}
+                            >
+                                {session.status === 'running' ? 'Pause' : (session.status === 'idle' && displayTime > 0 ? 'Resume' : 'Start')}
                             </button>
                             <button className="btn outline flex-1" style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '0.75rem' }} onClick={() => handleStop(null, false)}>
                                 <Square size={16} />

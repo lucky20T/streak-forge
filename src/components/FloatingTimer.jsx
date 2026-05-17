@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getTodayString, formatTime } from '../utils';
+import { useEffect, useState, useRef } from 'react';
+import { getTodayString, formatTime, playChime, showNotification } from '../utils';
 import { Play, Pause, Square, Maximize2, Minimize2, Coffee } from 'lucide-react';
 
 export default function FloatingTimer({ appState, updateState, activityId, onClose, triggerSync }) {
@@ -35,6 +35,7 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
 
     const [displayTime, setDisplayTime] = useState(session.accumulatedTime);
     const [breakRemaining, setBreakRemaining] = useState(session.currentBreakTarget - session.accumulatedBreakTime);
+    const lastNotifiedHourRef = useRef(Math.floor(session.accumulatedTime / 3600));
 
     // Heartbeat logic
     useEffect(() => {
@@ -53,7 +54,15 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
 
                 if (newState.status === 'running' && newState.lastRunStartTime) {
                     const elapsed = Math.floor((now - newState.lastRunStartTime) / 1000);
-                    setDisplayTime(newState.accumulatedTime + elapsed);
+                    const totalSecs = newState.accumulatedTime + elapsed;
+                    setDisplayTime(totalSecs);
+                    
+                    const currentHour = Math.floor(totalSecs / 3600);
+                    if (currentHour > 0 && currentHour > lastNotifiedHourRef.current) {
+                        lastNotifiedHourRef.current = currentHour;
+                        playChime();
+                        showNotification("Streak Forge - Focus Check", `Congratulations! You've been focusing for ${currentHour} hour${currentHour > 1 ? 's' : ''}!`);
+                    }
                 } else if (newState.status === 'break-running' && newState.lastBreakStartTime) {
                     const elapsed = newState.accumulatedBreakTime + Math.floor((now - newState.lastBreakStartTime) / 1000);
                     const remaining = newState.currentBreakTarget - elapsed;
@@ -86,6 +95,9 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
     const totalDisplayTime = todayData.time + displayTime;
     
     const handleStart = () => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
         setSession(prev => {
             if (prev.status === 'running') return prev;
             return {
@@ -222,6 +234,7 @@ export default function FloatingTimer({ appState, updateState, activityId, onClo
                 startDate: getTodayString()
             });
             setDisplayTime(0);
+            lastNotifiedHourRef.current = 0;
         }
     };
 

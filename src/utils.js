@@ -61,3 +61,45 @@ export function getSkillLevelInfo(totalSeconds) {
         
     return { level, label, totalHours, nextLevelHours, progress };
 }
+
+export function playChime() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const playTone = (freq, startTime, duration) => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            
+            gainNode.gain.setValueAtTime(0.15, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+            
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+
+        const now = audioCtx.currentTime;
+        playTone(523.25, now, 1.2);       // C5
+        playTone(783.99, now + 0.15, 1.5); // G5
+    } catch (e) {
+        console.error("Web Audio API not supported or blocked", e);
+    }
+}
+
+export function showNotification(title, body) {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+        new Notification(title, { body });
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                new Notification(title, { body });
+            }
+        });
+    }
+}

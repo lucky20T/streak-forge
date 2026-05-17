@@ -1,10 +1,24 @@
-import { useEffect, useState } from 'react';
-import { getTodayString, formatTime } from '../utils';
+import { useEffect, useState, useRef } from 'react';
+import { getTodayString, formatTime, playChime, showNotification } from '../utils';
 
 export default function FocusModal({ appState, updateState, activityId, onClose, focusState, setFocusState }) {
     const today = getTodayString();
     const activity = appState.activities.find(a => a.id === activityId);
     const [customBreakMins, setCustomBreakMins] = useState(15);
+    const lastNotifiedHourRef = useRef(Math.floor(focusState.time / 3600));
+
+    useEffect(() => {
+        if (focusState.time === 0) {
+            lastNotifiedHourRef.current = 0;
+            return;
+        }
+        const currentHour = Math.floor(focusState.time / 3600);
+        if (currentHour > 0 && currentHour > lastNotifiedHourRef.current) {
+            lastNotifiedHourRef.current = currentHour;
+            playChime();
+            showNotification("Streak Forge - Focus Check", `Congratulations! You've been focusing for ${currentHour} hour${currentHour > 1 ? 's' : ''}!`);
+        }
+    }, [focusState.time]);
     
     // Timer Effect
     useEffect(() => {
@@ -64,6 +78,9 @@ export default function FocusModal({ appState, updateState, activityId, onClose,
     }
 
     const handleStart = () => {
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
         setFocusState(prev => {
             if (prev.status === 'running') return prev;
             return { ...prev, status: 'running' };
